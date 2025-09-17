@@ -1,0 +1,10 @@
+{
+  "name": "@joinomu-monorepo/joinomu-monorepo-e2e",
+  "version": "0.0.1",
+  "private": true,
+  "nx": {
+    "implicitDependencies": [
+      "@joinomu-monorepo/joinomu-monorepo"
+    ]
+  }
+}
