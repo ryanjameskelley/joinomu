@@ -22,6 +22,10 @@
     "react": ">=18.0.0",
     "react-dom": ">=18.0.0"
   },
+  "scripts": {
+    "build": "tsc -p tsconfig.lib.json",
+    "dev": "tsc -p tsconfig.lib.json --watch"
+  },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.1.2",
     "@radix-ui/react-alert-dialog": "^1.0.5",
