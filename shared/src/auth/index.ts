@@ -1,0 +1,8 @@
+// Auth service and core functionality
+export { AuthService, authService } from './auth-service.js'
+
+// Auth provider and context
+export { AuthProvider, useAuth } from './auth-provider.js'
+
+// Auth hooks for forms and utilities
+export { useLoginForm, useSignupForm, useUserRole } from './auth-hooks.js'

@@ -1,0 +1,159 @@
+# JoinOmu Healthcare Platform - Backup Automation Crontab
+# HIPAA-compliant automated backup scheduling
+# 
+# Installation:
+# 1. Copy this file to /etc/cron.d/joinomu-backup
+# 2. Ensure proper permissions: chmod 644 /etc/cron.d/joinomu-backup
+# 3. Update environment variables in the script
+# 4. Test with: ./scripts/backup-automation.sh health
+
+# Environment variables for cron jobs
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+MAILTO=admin@joinomu.com
+
+# Project directory
+PROJECT_DIR=/opt/joinomu-monorepo
+
+# Backup Environment Variables
+ENVIRONMENT=production
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+BACKUP_NOTIFICATION_WEBHOOK=https://hooks.slack.com/services/your/webhook/url
+PAGERDUTY_INTEGRATION_KEY=your-pagerduty-key
+
+# =============================================================================
+# PRODUCTION BACKUP SCHEDULE
+# =============================================================================
+
+# Full backup daily at 2:00 AM UTC (during low-usage period)
+# Retention: 30 days for full backups
+0 2 * * * root cd $PROJECT_DIR && ./scripts/backup-automation.sh backup full >> /var/log/joinomu/backup-full.log 2>&1
+
+# Incremental backups every 4 hours (except during full backup)
+# Retention: 7 days for incremental backups
+0 6,10,14,18,22 * * * root cd $PROJECT_DIR && ./scripts/backup-automation.sh backup incremental >> /var/log/joinomu/backup-incremental.log 2>&1
+
+# Transaction log backups every 15 minutes
+# Critical for point-in-time recovery and HIPAA compliance
+*/15 * * * * root cd $PROJECT_DIR && ./scripts/backup-automation.sh backup transaction_log >> /var/log/joinomu/backup-transaction.log 2>&1
+
+# =============================================================================
+# VERIFICATION AND TESTING
+# =============================================================================
+
+# Backup verification daily at 3:30 AM (after full backup)
+30 3 * * * root cd $PROJECT_DIR && ./scripts/backup-automation.sh verify latest >> /var/log/joinomu/backup-verify.log 2>&1
+
+# Disaster recovery test monthly on first Sunday at 4:00 AM
+0 4 * * 0 root [ $(date +\%d) -le 7 ] && cd $PROJECT_DIR && ./scripts/backup-automation.sh test-dr corruption >> /var/log/joinomu/backup-dr-test.log 2>&1
+
+# Regional outage DR test quarterly on 1st of month
+0 5 1 */3 * root cd $PROJECT_DIR && ./scripts/backup-automation.sh test-dr regionalOutage >> /var/log/joinomu/backup-dr-regional.log 2>&1
+
+# Security breach DR test annually on January 1st
+0 6 1 1 * root cd $PROJECT_DIR && ./scripts/backup-automation.sh test-dr securityBreach >> /var/log/joinomu/backup-dr-security.log 2>&1
+
+# =============================================================================
+# MAINTENANCE AND CLEANUP
+# =============================================================================
+
+# Cleanup old backups weekly on Sunday at 1:00 AM
+0 1 * * 0 root cd $PROJECT_DIR && ./scripts/backup-automation.sh cleanup >> /var/log/joinomu/backup-cleanup.log 2>&1
+
+# Health monitoring every 30 minutes
+*/30 * * * * root cd $PROJECT_DIR && ./scripts/backup-automation.sh health >> /var/log/joinomu/backup-health.log 2>&1
+
+# Storage usage monitoring every hour
+0 * * * * root cd $PROJECT_DIR && ./scripts/storage-monitor.sh >> /var/log/joinomu/storage-monitor.log 2>&1
+
+# Encryption key rotation check daily at 1:30 AM
+30 1 * * * root cd $PROJECT_DIR && ./scripts/key-rotation-check.sh >> /var/log/joinomu/key-rotation.log 2>&1
+
+# =============================================================================
+# COMPLIANCE AND AUDIT
+# =============================================================================
+
+# Generate weekly compliance report on Monday at 7:00 AM
+0 7 * * 1 root cd $PROJECT_DIR && ./scripts/compliance-report.sh weekly >> /var/log/joinomu/compliance-weekly.log 2>&1
+
+# Generate monthly compliance report on 1st at 8:00 AM
+0 8 1 * * root cd $PROJECT_DIR && ./scripts/compliance-report.sh monthly >> /var/log/joinomu/compliance-monthly.log 2>&1
+
+# Audit log rotation and archival daily at 11:30 PM
+30 23 * * * root cd $PROJECT_DIR && ./scripts/audit-log-rotation.sh >> /var/log/joinomu/audit-rotation.log 2>&1
+
+# HIPAA security assessment quarterly
+0 9 1 */3 * root cd $PROJECT_DIR && ./scripts/hipaa-assessment.sh >> /var/log/joinomu/hipaa-assessment.log 2>&1
+
+# =============================================================================
+# MONITORING AND ALERTING
+# =============================================================================
+
+# Check backup success/failure status every 5 minutes during backup windows
+# 2:00-3:00 AM (full backup window)
+*/5 2-3 * * * root cd $PROJECT_DIR && ./scripts/backup-status-check.sh >> /var/log/joinomu/backup-status.log 2>&1
+
+# Check storage quotas and send alerts if approaching limits
+0 */6 * * * root cd $PROJECT_DIR && ./scripts/storage-quota-check.sh >> /var/log/joinomu/storage-quota.log 2>&1
+
+# Network connectivity test to backup storage locations
+*/10 * * * * root cd $PROJECT_DIR && ./scripts/backup-connectivity-test.sh >> /var/log/joinomu/backup-connectivity.log 2>&1
+
+# =============================================================================
+# DEVELOPMENT/STAGING ENVIRONMENT OVERRIDES
+# =============================================================================
+
+# For staging environment (less frequent backups)
+# Uncomment and modify as needed for staging deployment
+
+# Staging full backup daily at 3:00 AM
+# 0 3 * * * root [ "$ENVIRONMENT" = "staging" ] && cd $PROJECT_DIR && ./scripts/backup-automation.sh backup full
+
+# Staging incremental backup twice daily
+# 0 9,21 * * * root [ "$ENVIRONMENT" = "staging" ] && cd $PROJECT_DIR && ./scripts/backup-automation.sh backup incremental
+
+# =============================================================================
+# LOG ROTATION
+# =============================================================================
+
+# Note: Use logrotate for proper log management
+# Create /etc/logrotate.d/joinomu-backup with appropriate configuration
+
+# Example logrotate configuration:
+# /var/log/joinomu/*.log {
+#     daily
+#     rotate 90
+#     compress
+#     delaycompress
+#     missingok
+#     create 644 root root
+#     postrotate
+#         /bin/systemctl reload rsyslog > /dev/null 2>&1 || true
+#     endscript
+# }
+
+# =============================================================================
+# EMERGENCY PROCEDURES
+# =============================================================================
+
+# Emergency backup trigger (can be run manually)
+# Run immediately: sudo -u root /opt/joinomu-monorepo/scripts/backup-automation.sh backup full
+
+# Emergency restore validation (manual trigger)
+# sudo -u root /opt/joinomu-monorepo/scripts/emergency-restore-validation.sh
+
+# =============================================================================
+# SECURITY NOTES
+# =============================================================================
+
+# 1. Ensure cron daemon is running: systemctl enable crond && systemctl start crond
+# 2. Monitor cron logs: tail -f /var/log/cron
+# 3. Validate cron permissions: ls -la /etc/cron.d/joinomu-backup
+# 4. Test cron syntax: crontab -T /etc/cron.d/joinomu-backup
+# 5. Ensure proper SELinux context if enabled
+# 6. Verify environment variables are properly set and secured
+# 7. Use dedicated service account with minimal required permissions
+# 8. Rotate service account credentials regularly
+# 9. Monitor for unauthorized modifications to this file
+# 10. Backup this crontab configuration itself as part of disaster recovery

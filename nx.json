@@ -63,6 +63,30 @@
       "options": {
         "targetName": "e2e"
       }
+    },
+    {
+      "plugin": "@nx/rollup/plugin",
+      "options": {
+        "buildTargetName": "build",
+        "buildDepsTargetName": "build-deps",
+        "watchDepsTargetName": "watch-deps"
+      }
+    },
+    {
+      "plugin": "@nx/expo/plugin",
+      "options": {
+        "startTargetName": "start",
+        "buildTargetName": "build",
+        "prebuildTargetName": "prebuild",
+        "serveTargetName": "serve",
+        "installTargetName": "install",
+        "exportTargetName": "export",
+        "submitTargetName": "submit",
+        "runIosTargetName": "run-ios",
+        "runAndroidTargetName": "run-android",
+        "buildDepsTargetName": "build-deps",
+        "watchDepsTargetName": "watch-deps"
+      }
     }
   ],
   "targetDefaults": {
@@ -83,8 +107,14 @@
       },
       "library": {
         "style": "css",
-        "linter": "eslint"
+        "linter": "eslint",
+        "unitTestRunner": "none"
       }
+    }
+  },
+  "release": {
+    "version": {
+      "preVersionCommand": "npx nx run-many -t build"
     }
   }
 }
