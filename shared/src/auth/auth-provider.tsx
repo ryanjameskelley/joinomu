@@ -15,37 +15,33 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [loading, setLoading] = useState(true)
   const [userRole, setUserRole] = useState<UserRole | null>(null)
 
+  const loadUserData = async (userId: string) => {
+    try {
+      const role = await authService.getUserRole(userId)
+      setUserRole(role)
+    } catch (error) {
+      console.error('Error loading user data:', error)
+      setUserRole(null)
+    }
+  }
+
   useEffect(() => {
     // Get initial session
     const initializeAuth = async () => {
       try {
-        console.log('🔄 Initializing auth...')
         const { session, error } = await authService.getCurrentSession()
-        
-        console.log('📋 Session check:', { session: !!session, error })
         
         if (session && !error) {
           setSession(session)
           setUser(session.user)
           
           if (session.user) {
-            console.log('👤 Fetching user role for:', session.user.id)
-            try {
-              const { roles, primaryRole } = await authService.fetchUserRoles(session.user.id)
-              console.log('🎭 User roles:', { roles, primaryRole })
-              setUserRole(primaryRole || 'patient') // Default to patient if role not found
-            } catch (roleError) {
-              console.error('❌ Error fetching user role:', roleError)
-              setUserRole('patient') // Default to patient on error
-            }
+            await loadUserData(session.user.id)
           }
-        } else {
-          console.log('🚫 No session or error:', error)
         }
-      } catch (initError) {
-        console.error('❌ Error initializing auth:', initError)
+      } catch (error) {
+        console.error('Error initializing auth:', error)
       } finally {
-        console.log('✅ Auth initialization complete')
         setLoading(false)
       }
     }
@@ -55,34 +51,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Listen for auth changes
     const subscription = authService.onAuthStateChange(
       async (event, session) => {
-        console.log('🔄 Auth state change:', event, !!session)
         setSession(session)
         setUser(session?.user ?? null)
         
         if (session?.user) {
-          try {
-            // Add a small delay for new signups to ensure database writes are committed
-            if (event === 'SIGNED_IN') {
-              console.log('🔄 New sign in detected, waiting for database sync...')
-              await new Promise(resolve => setTimeout(resolve, 2000))
-            }
-            
-            const { primaryRole } = await authService.fetchUserRoles(session.user.id)
-            console.log('🎭 Auth provider role result:', primaryRole)
-            
-            // Only update role if we got a valid role or if we don't have one yet
-            if (primaryRole || userRole === null) {
-              setUserRole(primaryRole || 'patient')
-            } else {
-              console.log('🔒 Keeping existing role:', userRole, 'instead of null result')
-            }
-          } catch (roleError) {
-            console.error('❌ Error fetching user role in state change:', roleError)
-            // Only set to patient if we don't have a role yet
-            if (userRole === null) {
-              setUserRole('patient')
-            }
-          }
+          await loadUserData(session.user.id)
         } else {
           setUserRole(null)
         }
