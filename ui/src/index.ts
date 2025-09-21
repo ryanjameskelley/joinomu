@@ -46,6 +46,7 @@ export * from './components/provider-dashboard'
 // Form Components
 export * from './forms/login-form'
 export * from './forms/signup-form'
+export * from './forms/role-signup-form'
 export * from './forms/eligibility-form'
 export * from './forms/admin-login-form'
 export * from './forms/admin-signup-form'

@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { authService } from './auth-service.js'
-import type { SignInCredentials, SignUpCredentials } from '../types/auth.js'
+import { authService, type SignUpCredentials } from './auth-service.js'
+import type { SignInCredentials } from '../types/auth.js'
 
 /**
  * Hook for handling login form logic

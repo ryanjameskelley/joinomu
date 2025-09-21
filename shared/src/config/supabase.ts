@@ -47,20 +47,7 @@ export const getSupabaseConfig = () => {
 // Create and export the Supabase client
 export const createSupabaseClient = () => {
   const config = getSupabaseConfig()
-  console.log('Creating Supabase client with URL:', config.url)
-  const client = createClient(config.url, config.anonKey)
-  
-  // Wrap the from method to intercept providers table calls
-  const originalFrom = client.from.bind(client)
-  client.from = function(table: string) {
-    if (table === 'providers') {
-      console.log('🚨 INTERCEPTED: Supabase call to providers table')
-      console.trace('🚨 CALL STACK for providers table access')
-    }
-    return originalFrom(table)
-  }
-  
-  return client
+  return createClient(config.url, config.anonKey)
 }
 
 // Default export for convenience - will be created lazily when first imported
