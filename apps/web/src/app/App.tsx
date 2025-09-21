@@ -1,41 +1,54 @@
 import React from 'react'
 import { Routes, Route, Link, useNavigate } from 'react-router-dom'
-import { Button, LoginForm } from '@joinomu/ui'
+import { Button } from '@joinomu/ui'
 import { ThemeProvider } from '@/components/theme-provider'
 import { AuthProvider, useAuth } from '@/hooks/useAuth'
-import { supabase } from '@/utils/supabase/client'
-import { useState } from 'react'
-import { AdminLoginPage } from '@/pages/AdminLoginPage'
-import { AdminSignupPage } from '@/pages/AdminSignupPage'
+import { LoginPage } from '@/components/LoginPage'
+import { SignupPage } from '@/components/SignupPage'
 import { AdminDashboard } from '@/pages/AdminDashboard'
-import { ProviderLoginPage } from '@/pages/ProviderLoginPage'
-import { ProviderSignupPage } from '@/pages/ProviderSignupPage'
 import { ProviderDashboard } from '@/pages/ProviderDashboard'
 import { PatientDashboard } from '@/components/PatientDashboard'
-import { SignupPage } from '@/components/SignupPage'
-import '@/simple-trigger-fix'
-import '@/debug-connectivity'
 
 function LandingPage() {
   const { user, loading, userRole } = useAuth()
   const navigate = useNavigate()
   
-  // Auto-redirect admins to their dashboard
+  // Auto-redirect users to their appropriate dashboard
   React.useEffect(() => {
-    if (!loading && user && userRole === 'admin') {
-      console.log('🔄 Landing page auto-redirecting admin to dashboard')
-      navigate('/admin/dashboard', { replace: true })
+    if (!loading && user && userRole) {
+      console.log(`Auto-redirecting ${userRole} to dashboard`)
+      switch (userRole) {
+        case 'admin':
+          navigate('/admin/dashboard', { replace: true })
+          break
+        case 'provider':
+          navigate('/provider/dashboard', { replace: true })
+          break
+        case 'patient':
+          navigate('/dashboard', { replace: true })
+          break
+      }
     }
   }, [loading, user, userRole, navigate])
   
-  const handleGoToDashboard = () => {
-    if (userRole === 'admin') {
-      navigate('/admin/dashboard')
-    } else if (userRole === 'provider') {
-      navigate('/provider/dashboard')
-    } else {
-      navigate('/dashboard') // Default to patient dashboard
-    }
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p>Loading...</p>
+      </div>
+    )
+  }
+
+  if (user && userRole) {
+    // This should not show due to the useEffect redirect above, but just in case
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="max-w-md w-full space-y-6 text-center">
+          <h1 className="text-3xl font-bold">Welcome back!</h1>
+          <p className="text-sm text-muted-foreground">Redirecting you to your dashboard...</p>
+        </div>
+      </div>
+    )
   }
   
   return (
@@ -43,114 +56,74 @@ function LandingPage() {
       <div className="max-w-md w-full space-y-6">
         <h1 className="text-3xl font-bold text-center">JoinOmu Health Platform</h1>
         
-        {loading ? (
-          <p className="text-center">Loading...</p>
-        ) : user ? (
-          <div className="space-y-4 text-center">
-            <p className="text-sm text-muted-foreground">Welcome back, {user.email}!</p>
-            <p className="text-xs text-muted-foreground">Role: {userRole || 'Loading...'}</p>
-            <Button onClick={handleGoToDashboard} className="w-full">
-              Go to {userRole === 'admin' ? 'Admin' : userRole === 'provider' ? 'Provider' : 'Patient'} Dashboard
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <Button asChild className="w-full" size="lg">
-              <Link to="/patient-login">Patient Login</Link>
-            </Button>
-            <Button asChild variant="outline" className="w-full" size="lg">
-              <Link to="/admin-login">Admin Login</Link>
-            </Button>
-            <Button asChild variant="secondary" className="w-full" size="lg">
-              <Link to="/provider/login">Provider Login</Link>
-            </Button>
-          </div>
-        )}
+        <div className="space-y-4">
+          <Button asChild className="w-full" size="lg">
+            <Link to="/login">Sign In</Link>
+          </Button>
+          <Button asChild variant="outline" className="w-full" size="lg">
+            <Link to="/signup">Create Account</Link>
+          </Button>
+        </div>
         
         <p className="text-center text-sm text-muted-foreground">
-          Healthcare management platform powered by React + TypeScript
+          Healthcare management platform for patients, providers, and administrators
         </p>
       </div>
     </div>
   )
 }
 
-function TestPage({ title }: { title: string }) {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="max-w-md w-full space-y-6 text-center">
-        <h1 className="text-2xl font-bold">{title}</h1>
-        <Button asChild variant="outline">
-          <Link to="/">← Back to Home</Link>
-        </Button>
-      </div>
-    </div>
-  )
-}
-
-
-function PatientLoginPage() {
+// Protected route component that redirects based on user role
+function ProtectedRoute({ 
+  children, 
+  requiredRole 
+}: { 
+  children: React.ReactNode
+  requiredRole?: 'patient' | 'admin' | 'provider'
+}) {
+  const { user, loading, userRole } = useAuth()
   const navigate = useNavigate()
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
 
-  const handleLogin = async (email: string, password: string) => {
-    setLoading(true)
-    setError('')
-
-    try {
-      // First, authenticate with Supabase
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-
-      if (signInError) throw signInError
-
-      if (data.user) {
-        // Check if user exists in patients table
-        const { data: patientData, error: patientError } = await supabase
-          .from('patients')
-          .select('*')
-          .eq('user_id', data.user.id)
-          .single()
-
-        if (patientError || !patientData) {
-          // User exists in auth but not in patients table
-          await supabase.auth.signOut()
-          setError('Access denied. Patient account required.')
-          setLoading(false)
-          return
+  React.useEffect(() => {
+    if (!loading) {
+      if (!user) {
+        navigate('/login', { replace: true })
+      } else if (requiredRole && userRole !== requiredRole) {
+        // Redirect to appropriate dashboard if user has wrong role
+        switch (userRole) {
+          case 'admin':
+            navigate('/admin/dashboard', { replace: true })
+            break
+          case 'provider':
+            navigate('/provider/dashboard', { replace: true })
+            break
+          case 'patient':
+            navigate('/dashboard', { replace: true })
+            break
+          default:
+            navigate('/login', { replace: true })
         }
-
-        // Successful patient login - navigate to dashboard
-        navigate('/dashboard')
       }
-    } catch (error: any) {
-      setError(error.message || 'An error occurred during login')
     }
-    
-    setLoading(false)
+  }, [user, loading, userRole, requiredRole, navigate])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p>Loading...</p>
+      </div>
+    )
   }
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="max-w-md w-full">
-        <LoginForm 
-          onSubmit={handleLogin}
-          loading={loading}
-          error={error}
-          showSignupLink={true}
-          signupLink="/patient-signup"
-        />
-        <div className="mt-4 text-center">
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/">← Back to Home</Link>
-          </Button>
-        </div>
-      </div>
-    </div>
-  )
+  if (!user) {
+    return null // Will redirect to login
+  }
+
+  if (requiredRole && userRole !== requiredRole) {
+    return null // Will redirect to appropriate dashboard
+  }
+
+  return <>{children}</>
 }
 
 function App() {
@@ -165,16 +138,46 @@ function App() {
       <AuthProvider>
         <Routes>
           <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
+          
+          {/* Patient Routes */}
+          <Route 
+            path="/dashboard" 
+            element={
+              <ProtectedRoute requiredRole="patient">
+                <PatientDashboard />
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* Admin Routes */}
+          <Route 
+            path="/admin/dashboard" 
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminDashboard />
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* Provider Routes */}
+          <Route 
+            path="/provider/dashboard" 
+            element={
+              <ProtectedRoute requiredRole="provider">
+                <ProviderDashboard />
+              </ProtectedRoute>
+            } 
+          />
+
+          {/* Legacy route redirects for backward compatibility */}
+          <Route path="/patient-login" element={<LoginPage />} />
+          <Route path="/admin-login" element={<LoginPage />} />
+          <Route path="/provider/login" element={<LoginPage />} />
           <Route path="/patient-signup" element={<SignupPage />} />
-          <Route path="/patient-login" element={<PatientLoginPage />} />
-          <Route path="/dashboard" element={<PatientDashboard />} />
-          <Route path="/admin-login" element={<AdminLoginPage />} />
-          <Route path="/admin/signup" element={<AdminSignupPage />} />
-          <Route path="/admin/dashboard" element={<AdminDashboard />} />
-          <Route path="/provider/login" element={<ProviderLoginPage />} />
-          <Route path="/provider/signup" element={<ProviderSignupPage />} />
-          <Route path="/provider/dashboard" element={<ProviderDashboard />} />
+          <Route path="/admin/signup" element={<SignupPage />} />
+          <Route path="/provider/signup" element={<SignupPage />} />
         </Routes>
       </AuthProvider>
     </ThemeProvider>
