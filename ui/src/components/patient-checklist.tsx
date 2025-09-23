@@ -44,7 +44,8 @@ export function PatientChecklist({
             {items.map((item, index) => {
               const isFirst = index === 0
               const isLast = index === items.length - 1
-              const isDisabled = item.disabled || (!isFirst && !items[index - 1]?.completed)
+              // Temporarily allow medication preferences (index 1) for testing
+              const isDisabled = item.disabled || (!isFirst && !items[index - 1]?.completed && !(item.id === 'medication' && index === 1))
               
               return (
                 <div key={item.id} className="relative flex items-start gap-4">

@@ -331,6 +331,111 @@ export class AuthService {
   }
 
   /**
+   * Get available medications from the database
+   */
+  async getAvailableMedications() {
+    try {
+      console.log('🔍 Getting available medications')
+      
+      const { data, error } = await supabase
+        .from('medications')
+        .select('*')
+        .eq('active', true)
+        .order('name')
+
+      if (error) {
+        console.error('❌ Error fetching medications:', error)
+        return { data: [], error }
+      }
+
+      console.log('🔍 Raw medication data:', data)
+
+      // Group medications by name and collect available strengths
+      const medicationMap = new Map()
+      
+      if (data && Array.isArray(data)) {
+        console.log('🔄 Processing medications...')
+        data.forEach((med, index) => {
+          console.log(`Processing med ${index}:`, med)
+          const key = med.name
+          if (!medicationMap.has(key)) {
+            medicationMap.set(key, {
+              id: med.id, // Use the first ID found for this medication name
+              name: `${med.name} (${med.brand_name})`,
+              description: med.description,
+              category: med.category,
+              available_dosages: [med.strength]
+            })
+          } else {
+            const existing = medicationMap.get(key)
+            if (!existing.available_dosages.includes(med.strength)) {
+              existing.available_dosages.push(med.strength)
+            }
+          }
+        })
+      }
+
+      const groupedMedications = Array.from(medicationMap.values())
+      console.log('✅ Retrieved and grouped medications:', groupedMedications)
+      return { data: groupedMedications, error: null }
+    } catch (error) {
+      console.error('❌ Exception fetching medications:', error)
+      return { data: [], error }
+    }
+  }
+
+  /**
+   * Create medication preference for patient
+   */
+  async createMedicationPreference(profileId: string, medicationId: string, dosage: string) {
+    try {
+      console.log('🔍 Creating medication preference for profile:', profileId, 'medication:', medicationId, 'dosage:', dosage)
+      
+      // First, get the patient ID from the patients table using the profile ID
+      const { data: patientData, error: patientError } = await supabase
+        .from('patients')
+        .select('id')
+        .eq('profile_id', profileId)
+        .single()
+
+      if (patientError || !patientData) {
+        console.error('❌ Error finding patient record:', patientError)
+        return { success: false, error: patientError || { message: 'Patient not found' } }
+      }
+
+      console.log('✅ Found patient ID:', patientData.id)
+      
+      const insertData = {
+        patient_id: patientData.id,
+        medication_id: medicationId,
+        preferred_dosage: dosage,
+        status: 'pending'
+      }
+      
+      console.log('🔄 Insert data prepared:', insertData)
+      console.log('🔄 Making Supabase insert call...')
+
+      const { data, error } = await supabase
+        .from('patient_medication_preferences')
+        .insert(insertData)
+        .select()
+
+      console.log('🔍 Supabase insert response - data:', data, 'error:', error)
+
+      if (error) {
+        console.error('❌ Error creating medication preference:', error)
+        return { success: false, error }
+      }
+
+      console.log('✅ Created medication preference:', data)
+      return { success: true, data, error: null }
+    } catch (error) {
+      console.error('❌ Exception creating medication preference:', error)
+      return { success: false, error }
+    }
+  }
+
+  /**
    * Listen for auth state changes
    */
   onAuthStateChange(callback: (event: any, session: any) => void) {

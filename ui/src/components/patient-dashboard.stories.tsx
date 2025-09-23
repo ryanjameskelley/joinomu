@@ -1,8 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { PatientDashboard } from './patient-dashboard'
+import { MedicationPreferencesDialog, type MedicationOption } from './medication-preferences-dialog'
 import { action } from '@storybook/addon-actions'
 import type { ChecklistItem } from './patient-checklist'
 import type { MedicationInfo, AppointmentInfo } from './onboarded-patient-dashboard'
+import { useState } from 'react'
 
 const meta: Meta<typeof PatientDashboard> = {
   title: 'Atomic/Pages/Patients/Onboarding Dashboard',
@@ -220,5 +222,98 @@ export const PartiallyOnboardedPatient: Story = {
       },
     },
   },
+}
+
+// Sample medication options that would come from Supabase
+const sampleMedicationOptions: MedicationOption[] = [
+  {
+    id: 'semaglutide',
+    name: 'Semaglutide (Ozempic)',
+    description: 'GLP-1 receptor agonist for weight management',
+    category: 'weight_loss',
+    available_dosages: ['0.25mg', '0.5mg', '1.0mg', '2.0mg']
+  },
+  {
+    id: 'tirzepatide',
+    name: 'Tirzepatide (Mounjaro)',
+    description: 'Dual GLP-1/GIP receptor agonist',
+    category: 'weight_loss',
+    available_dosages: ['2.5mg', '5mg', '7.5mg', '10mg', '12.5mg', '15mg']
+  },
+  {
+    id: 'liraglutide',
+    name: 'Liraglutide (Saxenda)',
+    description: 'FDA-approved weight management medication',
+    category: 'weight_loss',
+    available_dosages: ['0.6mg', '1.2mg', '1.8mg', '2.4mg', '3.0mg']
+  },
+  {
+    id: 'testosterone',
+    name: 'Testosterone Cypionate',
+    description: 'Hormone replacement therapy',
+    category: 'mens_health',
+    available_dosages: ['100mg/ml', '200mg/ml']
+  },
+  {
+    id: 'sildenafil',
+    name: 'Sildenafil (Generic Viagra)',
+    description: 'For erectile dysfunction',
+    category: 'mens_health',
+    available_dosages: ['25mg', '50mg', '100mg']
+  }
+]
+
+// Interactive story component for medication preferences
+function PatientDashboardWithMedicationPreferences() {
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+
+  const handleChecklistItemClick = (item: ChecklistItem) => {
+    action('checklist-item-clicked')(item)
+    if (item.id === 'medication') {
+      setDialogOpen(true)
+    }
+  }
+
+  const handleMedicationSubmit = async (preferences: { medicationId: string; dosage: string }) => {
+    setLoading(true)
+    action('medication-preferences-submitted')(preferences)
+    
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 2000))
+    
+    setLoading(false)
+    setDialogOpen(false)
+  }
+
+  return (
+    <>
+      <PatientDashboard
+        user={sampleUser}
+        isOnboarded={false}
+        checklistItems={partiallyCompletedChecklist}
+        onLogout={action('logout-clicked')}
+        onChecklistItemClick={handleChecklistItemClick}
+      />
+      <MedicationPreferencesDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        medications={sampleMedicationOptions}
+        onSubmit={handleMedicationSubmit}
+        loading={loading}
+      />
+    </>
+  )
+}
+
+export const WithMedicationPreferences: Story = {
+  render: () => <PatientDashboardWithMedicationPreferences />,
+  parameters: {
+    docs: {
+      description: {
+        story: 'Patient dashboard with medication preferences dialog integration. Click on "Select medication preferences" checklist item to open the dialog. The dialog shows medications from Supabase and allows dosage selection.'
+      }
+    }
+  }
 }
 

@@ -1,7 +1,8 @@
-import { PatientDashboard as SidebarPatientDashboard, type ChecklistItem, type MedicationInfo, type AppointmentInfo } from '@joinomu/ui'
+import { PatientDashboard as SidebarPatientDashboard, type ChecklistItem, type MedicationInfo, type AppointmentInfo, MedicationPreferencesDialog, type MedicationOption } from '@joinomu/ui'
 import { useAuth } from '@/hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
+import { authService } from '@joinomu/shared'
 
 export function PatientDashboard() {
   const { user, signOut } = useAuth()
@@ -9,6 +10,9 @@ export function PatientDashboard() {
 
   // Sample onboarding state - in real app this would come from database
   const [isOnboarded, setIsOnboarded] = useState(false)
+  const [medicationDialogOpen, setMedicationDialogOpen] = useState(false)
+  const [medicationLoading, setMedicationLoading] = useState(false)
+  const [availableMedications, setAvailableMedications] = useState<MedicationOption[]>([])
   const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>([
     {
       id: 'plan',
@@ -62,9 +66,28 @@ export function PatientDashboard() {
     }
   }
 
-  const handleChecklistItemClick = (item: ChecklistItem) => {
+  const handleChecklistItemClick = async (item: ChecklistItem) => {
     console.log('Checklist item clicked:', item)
-    // In real app, would navigate to appropriate page or open modal
+    
+    if (item.id === 'medication') {
+      // Open medication preferences dialog
+      try {
+        console.log('🔄 Fetching medications...')
+        // Fetch available medications from Supabase
+        const result = await authService.getAvailableMedications()
+        console.log('🔍 Medications result:', result)
+        if (result.data) {
+          console.log('✅ Setting medications:', result.data)
+          setAvailableMedications(result.data)
+        }
+        console.log('🔄 Opening dialog...')
+        setMedicationDialogOpen(true)
+        console.log('✅ Dialog should be open now')
+      } catch (error) {
+        console.error('❌ Failed to load medications:', error)
+      }
+      return
+    }
     
     // Update item as completed for demo purposes
     setChecklistItems(prev => prev.map(i => 
@@ -89,6 +112,37 @@ export function PatientDashboard() {
   const handleMedicationAction = () => {
     console.log('Medication action clicked')
     // In real app, would show medication details or update preferences
+  }
+
+  const handleMedicationPreferencesSubmit = async (preferences: { medicationId: string; dosage: string }) => {
+    if (!user?.id) return
+
+    setMedicationLoading(true)
+    try {
+      const result = await authService.createMedicationPreference(
+        user.id, 
+        preferences.medicationId, 
+        preferences.dosage
+      )
+      
+      if (result.success) {
+        console.log('✅ Medication preference created successfully')
+        
+        // Mark medication checklist item as completed
+        setChecklistItems(prev => prev.map(i => 
+          i.id === 'medication' ? { ...i, completed: true } : i
+        ))
+        
+        // Close dialog
+        setMedicationDialogOpen(false)
+      } else {
+        console.error('❌ Failed to create medication preference:', result.error)
+      }
+    } catch (error) {
+      console.error('❌ Exception creating medication preference:', error)
+    } finally {
+      setMedicationLoading(false)
+    }
   }
 
   const handleNavigate = (itemOrUrl: string) => {
@@ -123,17 +177,26 @@ export function PatientDashboard() {
   } : undefined
 
   return (
-    <SidebarPatientDashboard 
-      user={userData} 
-      onLogout={handleLogout}
-      isOnboarded={isOnboarded}
-      checklistItems={!isOnboarded ? checklistItems : undefined}
-      onChecklistItemClick={handleChecklistItemClick}
-      medication={isOnboarded ? sampleMedication : undefined}
-      appointment={isOnboarded ? sampleAppointment : undefined}
-      onRescheduleAppointment={handleRescheduleAppointment}
-      onMedicationAction={handleMedicationAction}
-      onNavigate={handleNavigate}
-    />
+    <>
+      <SidebarPatientDashboard 
+        user={userData} 
+        onLogout={handleLogout}
+        isOnboarded={isOnboarded}
+        checklistItems={!isOnboarded ? checklistItems : undefined}
+        onChecklistItemClick={handleChecklistItemClick}
+        medication={isOnboarded ? sampleMedication : undefined}
+        appointment={isOnboarded ? sampleAppointment : undefined}
+        onRescheduleAppointment={handleRescheduleAppointment}
+        onMedicationAction={handleMedicationAction}
+        onNavigate={handleNavigate}
+      />
+      <MedicationPreferencesDialog
+        open={medicationDialogOpen}
+        onOpenChange={setMedicationDialogOpen}
+        medications={availableMedications}
+        onSubmit={handleMedicationPreferencesSubmit}
+        loading={medicationLoading}
+      />
+    </>
   )
 }
