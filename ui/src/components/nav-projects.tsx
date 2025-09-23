@@ -15,12 +15,14 @@ import {
 
 export function NavProjects({
   projects,
+  onNavigate,
 }: {
   projects: {
     name: string
     url: string
     icon: LucideIcon
   }[]
+  onNavigate?: (url: string) => void
 }) {
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
@@ -28,7 +30,13 @@ export function NavProjects({
       <SidebarMenu>
         {projects.map((item) => (
           <SidebarMenuItem key={item.name}>
-            <SidebarMenuButton asChild>
+            <SidebarMenuButton 
+              asChild
+              onClick={(e: React.MouseEvent) => {
+                e.preventDefault()
+                onNavigate?.(item.url)
+              }}
+            >
               <a href={item.url}>
                 <item.icon />
                 <span>{item.name}</span>

@@ -31,11 +31,11 @@ export const getSupabaseConfig = () => {
     anonKey = anonKey || globalEnv.VITE_SUPABASE_ANON_KEY
   }
 
-  // Fallback to hardcoded values for development (temporary)
+  // Fallback to local development Supabase
   if (!url || !anonKey) {
-    console.warn('Using fallback Supabase configuration. Set environment variables for production.')
-    url = 'https://ukyczgfoqhdbamxycrkn.supabase.co'
-    anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVreWN6Z2ZvcWhkYmFteHljcmtuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUxMzUwNjAsImV4cCI6MjA3MDcxMTA2MH0.Z43rbJrXSpfS1n4R2YUS-2zA_mFUaU2ywdAPOB2KuF8'
+    console.warn('Using fallback LOCAL Supabase configuration. Set environment variables for production.')
+    url = 'http://127.0.0.1:54321'
+    anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
   }
 
   return {

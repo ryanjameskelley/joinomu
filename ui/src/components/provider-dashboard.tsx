@@ -123,10 +123,12 @@ function TagList({ items, variant = "secondary" }: { items: string[], variant?: 
 
 function PatientTable({ 
   patients: initialPatients, 
-  providerId 
+  providerId,
+  onPatientClick
 }: { 
   patients?: Patient[]
-  providerId?: string 
+  providerId?: string
+  onPatientClick?: (patient: Patient) => void
 }) {
   const [globalFilter, setGlobalFilter] = React.useState("")
   const [selectedRows, setSelectedRows] = React.useState<string[]>([])
@@ -134,9 +136,12 @@ function PatientTable({
   const [patients, setPatients] = React.useState<Patient[]>(initialPatients || [])
   const [loading, setLoading] = React.useState(!initialPatients)
 
-  // Fetch provider's assigned patients
+  // Use provided patients or fetch if none provided
   React.useEffect(() => {
-    if (providerId && !initialPatients) {
+    if (initialPatients && initialPatients.length > 0) {
+      setPatients(initialPatients)
+      setLoading(false)
+    } else if (providerId) {
       fetchProviderPatients()
     }
   }, [providerId, initialPatients])
@@ -233,7 +238,12 @@ function PatientTable({
       accessorKey: "name",
       header: "Name",
       cell: ({ row }) => (
-        <div className="font-medium">{row.getValue("name")}</div>
+        <button 
+          className="font-medium text-left hover:text-primary hover:underline cursor-pointer"
+          onClick={() => onPatientClick?.(row.original)}
+        >
+          {row.getValue("name")}
+        </button>
       ),
     },
     {
@@ -500,7 +510,8 @@ export function ProviderDashboard({
   showPatientTable = false,
   onNavigate,
   providerId,
-  assignedPatients
+  assignedPatients,
+  onPatientClick
 }: {
   user?: {
     name: string
@@ -513,29 +524,15 @@ export function ProviderDashboard({
   onNavigate?: (item: string) => void
   providerId?: string
   assignedPatients?: Patient[]
+  onPatientClick?: (patient: Patient) => void
 }) {
   return (
-    <div className="light min-h-screen w-full bg-white text-gray-900" style={{ 
-      '--background': 'white',
-      '--foreground': 'black',
-      '--muted': '#f8f9fa',
-      '--muted-foreground': '#6c757d',
-      '--border': '#dee2e6',
-      '--sidebar': '#f8f9fa',
-      '--sidebar-foreground': 'black',
-      '--sidebar-primary': '#343a40',
-      '--sidebar-primary-foreground': 'white',
-      '--sidebar-accent': '#e9ecef',
-      '--sidebar-accent-foreground': 'black',
-      '--sidebar-border': '#dee2e6',
-      '--sidebar-ring': '#6c757d'
-    } as React.CSSProperties}>
-      <SidebarProvider>
+    <SidebarProvider>
         <AppSidebar user={user} onLogout={onLogout} onNavigate={onNavigate} userRole="provider" />
         <SidebarInset>
           <header className="flex h-16 shrink-0 items-center gap-2">
             <div className="flex items-center gap-2 px-4">
-              <SidebarTrigger className="-ml-1 hover:bg-gray-100 hover:text-gray-700 text-gray-700" />
+              <SidebarTrigger className="-ml-1" />
               <Separator
                 orientation="vertical"
                 className="mr-2 data-[orientation=vertical]:h-4"
@@ -549,11 +546,12 @@ export function ProviderDashboard({
               </Breadcrumb>
             </div>
           </header>
-          <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+          <div className="flex flex-1 flex-col gap-4 p-4 pt-0 bg-card">
             {showPatientTable ? (
               <PatientTable 
                 patients={assignedPatients} 
                 providerId={providerId}
+                onPatientClick={onPatientClick}
               />
             ) : (
               <>
@@ -568,7 +566,6 @@ export function ProviderDashboard({
             )}
           </div>
         </SidebarInset>
-      </SidebarProvider>
-    </div>
+    </SidebarProvider>
   )
 }

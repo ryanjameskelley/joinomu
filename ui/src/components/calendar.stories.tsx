@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import * as React from 'react'
 import { Calendar } from './calendar'
+import { DateInput } from './date-input'
 
 const meta: Meta<typeof Calendar> = {
   title: 'Atomic/Molecules/Calendar',
@@ -37,6 +38,28 @@ export const CalendarDemo: Story = {
     docs: {
       description: {
         story: 'Default calendar with single date selection mode and dropdown month/year selectors.',
+      },
+    },
+  },
+}
+
+export const DateInputDemo: Story = {
+  render: () => {
+    return (
+      <DateInput
+        label="Schedule Date"
+        placeholder="Tomorrow or next week"
+        helpText="Your post will be published on the selected date."
+        onChange={(value, date) => {
+          console.log('Date changed:', { value, date })
+        }}
+      />
+    )
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Smart date input with natural language parsing and calendar picker. Users can type dates like "tomorrow", "next week", or use the calendar picker.',
       },
     },
   },

@@ -61,27 +61,12 @@ export function PatientDashboard({
   onNavigate?: (item: string) => void
 }) {
   return (
-    <div className="light min-h-screen w-full bg-white text-gray-900" style={{ 
-      '--background': 'white',
-      '--foreground': 'black',
-      '--muted': '#f8f9fa',
-      '--muted-foreground': '#6c757d',
-      '--border': '#dee2e6',
-      '--sidebar': '#f8f9fa',
-      '--sidebar-foreground': 'black',
-      '--sidebar-primary': '#343a40',
-      '--sidebar-primary-foreground': 'white',
-      '--sidebar-accent': '#e9ecef',
-      '--sidebar-accent-foreground': 'black',
-      '--sidebar-border': '#dee2e6',
-      '--sidebar-ring': '#6c757d'
-    } as React.CSSProperties}>
-      <SidebarProvider>
+    <SidebarProvider>
         <AppSidebar user={user} onLogout={onLogout} onNavigate={onNavigate} />
         <SidebarInset>
           <header className="flex h-16 shrink-0 items-center gap-2">
             <div className="flex items-center gap-2 px-4">
-              <SidebarTrigger className="-ml-1 hover:bg-gray-100 hover:text-gray-700 text-gray-700" />
+              <SidebarTrigger className="-ml-1" />
               <Separator
                 orientation="vertical"
                 className="mr-2 data-[orientation=vertical]:h-4"
@@ -134,7 +119,6 @@ export function PatientDashboard({
             )}
           </div>
         </SidebarInset>
-      </SidebarProvider>
-    </div>
+    </SidebarProvider>
   )
 }

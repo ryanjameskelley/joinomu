@@ -92,18 +92,54 @@ export class AuthService {
    */
   async getUserRole(userId: string): Promise<UserRole | null> {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', userId)
+      console.log('🔍 getUserRole: Checking role for user:', userId)
+      
+      // Check in admins table first
+      const { data: adminData, error: adminError } = await supabase
+        .from('admins')
+        .select('id')
+        .eq('profile_id', userId)
         .single()
 
-      if (error || !data) {
-        return null
+      console.log('🔍 Admin query result:', { adminData, adminError })
+
+      if (adminData && !adminError) {
+        console.log('✅ getUserRole: Found admin role')
+        return 'admin'
       }
 
-      return data.role as UserRole
+      // Check in providers table
+      const { data: providerData, error: providerError } = await supabase
+        .from('providers')
+        .select('id')
+        .eq('profile_id', userId)
+        .single()
+
+      console.log('🔍 Provider query result:', { providerData, providerError })
+
+      if (providerData && !providerError) {
+        console.log('✅ getUserRole: Found provider role')
+        return 'provider'
+      }
+
+      // Check in patients table
+      const { data: patientData, error: patientError } = await supabase
+        .from('patients')
+        .select('id')
+        .eq('profile_id', userId)
+        .single()
+
+      console.log('🔍 Patient query result:', { patientData, patientError })
+
+      if (patientData && !patientError) {
+        console.log('✅ getUserRole: Found patient role')
+        return 'patient'
+      }
+
+      console.log('❌ getUserRole: No role found for user')
+      return null
     } catch (error) {
+      console.error('❌ getUserRole: Error checking role:', error)
       return null
     }
   }
@@ -164,8 +200,35 @@ export class AuthService {
     }
   }
 
+
   /**
-   * Assign patient to provider (admin only - uses database function)
+   * Get all patients for admin view
+   */
+  async getAllPatients(): Promise<{ data: any[] | null, error: any }> {
+    try {
+      const { data, error } = await supabase.rpc('get_all_patients_for_admin')
+      return { data, error }
+    } catch (error) {
+      return { data: null, error }
+    }
+  }
+
+  /**
+   * Get assigned patients for provider view
+   */
+  async getAssignedPatients(providerProfileId: string): Promise<{ data: any[] | null, error: any }> {
+    try {
+      const { data, error } = await supabase.rpc('get_assigned_patients_for_provider', {
+        provider_profile_id: providerProfileId
+      })
+      return { data, error }
+    } catch (error) {
+      return { data: null, error }
+    }
+  }
+
+  /**
+   * Assign patient to provider (admin only)
    */
   async assignPatientToProvider(
     patientProfileId: string,
@@ -174,21 +237,96 @@ export class AuthService {
     isPrimary: boolean = false
   ): Promise<{ success: boolean, error?: string, data?: any }> {
     try {
-      const { data, error } = await supabase
-        .rpc('assign_patient_to_provider', {
-          patient_profile_id: patientProfileId,
-          provider_profile_id: providerProfileId,
-          treatment_type_param: treatmentType,
-          is_primary_param: isPrimary
-        })
+      const { data, error } = await supabase.rpc('assign_patient_to_provider', {
+        patient_profile_id: patientProfileId,
+        provider_profile_id: providerProfileId,
+        treatment_type_param: treatmentType,
+        is_primary_param: isPrimary
+      })
 
       if (error) {
         return { success: false, error: error.message }
       }
 
-      return { success: data.success, error: data.error, data }
+      // The function returns an array with the result
+      if (data && data.length > 0) {
+        const result = data[0]
+        return { 
+          success: result.success, 
+          error: result.success ? undefined : result.message, 
+          data: result 
+        }
+      }
+
+      return { success: false, error: 'No result returned from assignment function' }
     } catch (error) {
-      return { success: false, error: 'An unexpected error occurred' }
+      return { success: false, error: 'An unexpected error occurred during assignment' }
+    }
+  }
+
+  /**
+   * Get detailed medication data for a patient
+   */
+  async getPatientMedicationsDetailed(patientId: string) {
+    try {
+      console.log('🔍 Getting detailed medications for patient:', patientId)
+      
+      const { data, error } = await supabase.rpc('get_patient_medications_detailed', {
+        patient_uuid: patientId
+      })
+
+      if (error) {
+        console.error('❌ Error fetching detailed medications:', error)
+        return { data: [], error }
+      }
+
+      console.log('✅ Retrieved detailed medications:', data)
+      return { data: data || [], error: null }
+    } catch (error) {
+      console.error('❌ Exception fetching detailed medications:', error)
+      return { data: [], error }
+    }
+  }
+
+  /**
+   * Update medication order fields (payment, shipping, etc.)
+   */
+  async updateMedicationOrder(orderId: string, updates: {
+    lastPaymentDate?: string
+    sentToPharmacyDate?: string
+    shippedToPharmacyDate?: string
+    trackingNumber?: string
+  }) {
+    try {
+      console.log('🔍 Updating medication order:', orderId, updates)
+      
+      const updateData: any = {}
+      if (updates.lastPaymentDate) updateData.payment_date = updates.lastPaymentDate
+      if (updates.sentToPharmacyDate) updateData.sent_to_pharmacy = updates.sentToPharmacyDate
+      if (updates.shippedToPharmacyDate) updateData.shipped_date = updates.shippedToPharmacyDate
+      if (updates.trackingNumber) updateData.tracking_number = updates.trackingNumber
+
+      console.log('🔄 Prepared update data:', updateData)
+      console.log('🔄 Making Supabase update call...')
+
+      const { data, error } = await supabase
+        .from('medication_orders')
+        .update(updateData)
+        .eq('id', orderId)
+        .select()
+
+      console.log('🔍 Supabase response - data:', data, 'error:', error)
+
+      if (error) {
+        console.error('❌ Error updating medication order:', error)
+        return { success: false, error }
+      }
+
+      console.log('✅ Updated medication order:', data)
+      return { success: true, data, error: null }
+    } catch (error) {
+      console.error('❌ Exception updating medication order:', error)
+      return { success: false, error }
     }
   }
 

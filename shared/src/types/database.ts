@@ -1,15 +1,22 @@
 // Database table interfaces
 export interface Patient {
   id: string
-  user_id: string
+  user_id?: string
+  profile_id?: string
+  patient_id?: string
   email: string
   first_name: string
   last_name: string
+  phone?: string
+  date_of_birth?: string
   has_completed_intake?: boolean
   intake_data?: Record<string, any>
-  active: boolean  // Added active field for account status
+  active?: boolean  // Added active field for account status
+  assigned_providers?: string[]
+  treatment_types?: string[]
+  medications?: string[]
   created_at: string
-  updated_at: string
+  updated_at?: string
 }
 
 export interface Admin {

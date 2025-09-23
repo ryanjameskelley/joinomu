@@ -130,6 +130,11 @@ export function AdminDashboard() {
   }
 
   const handleNavigate = (item: string) => {
+    if (item === 'Patients') {
+      // Navigate to dedicated patients page instead of showing inline table
+      navigate('/admin/patients')
+      return
+    }
     setActiveItem(item)
   }
 

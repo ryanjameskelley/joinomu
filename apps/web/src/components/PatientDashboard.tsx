@@ -91,6 +91,30 @@ export function PatientDashboard() {
     // In real app, would show medication details or update preferences
   }
 
+  const handleNavigate = (itemOrUrl: string) => {
+    console.log('Navigation clicked:', itemOrUrl)
+    // Handle both item names and URLs
+    if (itemOrUrl.startsWith('/')) {
+      // It's a URL, navigate directly
+      navigate(itemOrUrl)
+    } else {
+      // It's an item name, handle accordingly
+      switch (itemOrUrl) {
+        case 'Treatments':
+          navigate('/treatments')
+          break
+        case 'Messaging':
+          navigate('/messaging')
+          break
+        case 'Dashboard':
+          navigate('/dashboard')
+          break
+        default:
+          console.log('Unknown navigation item:', itemOrUrl)
+      }
+    }
+  }
+
   // Extract user data for the dashboard
   const userData = user ? {
     name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Patient',
@@ -109,6 +133,7 @@ export function PatientDashboard() {
       appointment={isOnboarded ? sampleAppointment : undefined}
       onRescheduleAppointment={handleRescheduleAppointment}
       onMedicationAction={handleMedicationAction}
+      onNavigate={handleNavigate}
     />
   )
 }

@@ -101,7 +101,7 @@ const getNavigationData = (userRole: "patient" | "admin" | "provider") => {
       },
       {
         title: "Treatments",
-        url: "#",
+        url: "/treatments",
         icon: Stethoscope,
       },
       {
@@ -136,12 +136,12 @@ const getNavigationData = (userRole: "patient" | "admin" | "provider") => {
     projects: [
       {
         name: "WeightLoss",
-        url: "#",
+        url: "/treatments/weightloss",
         icon: Pill,
       },
       {
         name: "Mens Health",
-        url: "#",
+        url: "/treatments/mens-health",
         icon: Heart,
       },
     ],
@@ -171,7 +171,7 @@ export function AppSidebar({
   const userData = user || navigationData.user
 
   return (
-    <Sidebar variant="inset" className="bg-gray-100" {...props}>
+    <Sidebar variant="inset" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -191,7 +191,7 @@ export function AppSidebar({
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={navigationData.navMain} onNavigate={onNavigate} />
-        <NavProjects projects={navigationData.projects} />
+        <NavProjects projects={navigationData.projects} onNavigate={onNavigate} />
         <NavSecondary items={navigationData.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>

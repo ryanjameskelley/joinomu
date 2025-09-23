@@ -2,12 +2,16 @@ import React from 'react'
 import { Routes, Route, Link, useNavigate } from 'react-router-dom'
 import { Button } from '@joinomu/ui'
 import { ThemeProvider } from '@/components/theme-provider'
+import { Toaster } from 'sonner'
 import { AuthProvider, useAuth } from '@/hooks/useAuth'
 import { LoginPage } from '@/components/LoginPage'
 import { SignupPage } from '@/components/SignupPage'
+import { DebugSignupPage } from '@/components/DebugSignupPage'
 import { AdminDashboard } from '@/pages/AdminDashboard'
 import { ProviderDashboard } from '@/pages/ProviderDashboard'
 import { PatientDashboard } from '@/components/PatientDashboard'
+import { AdminPatientsPage } from '@/pages/AdminPatientsPage'
+import { PatientTreatmentsPage } from '@/pages/PatientTreatmentsPage'
 
 function LandingPage() {
   const { user, loading, userRole } = useAuth()
@@ -15,8 +19,9 @@ function LandingPage() {
   
   // Auto-redirect users to their appropriate dashboard
   React.useEffect(() => {
+    console.log('🔍 LandingPage: Auth state check:', { loading, user: !!user, userRole })
     if (!loading && user && userRole) {
-      console.log(`Auto-redirecting ${userRole} to dashboard`)
+      console.log(`✅ Auto-redirecting ${userRole} to dashboard`)
       switch (userRole) {
         case 'admin':
           navigate('/admin/dashboard', { replace: true })
@@ -28,6 +33,10 @@ function LandingPage() {
           navigate('/dashboard', { replace: true })
           break
       }
+    } else if (!loading && user && !userRole) {
+      console.log('❌ User authenticated but no role found:', user.id)
+    } else if (!loading && !user) {
+      console.log('❌ No user authenticated')
     }
   }, [loading, user, userRole, navigate])
   
@@ -130,7 +139,7 @@ function App() {
   return (
     <ThemeProvider
       attribute="class"
-      defaultTheme="system"
+      defaultTheme="dark"
       enableSystem
       disableTransitionOnChange
       storageKey="joinomu-theme"
@@ -140,6 +149,7 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
+          <Route path="/debug-signup" element={<DebugSignupPage />} />
           
           {/* Patient Routes */}
           <Route 
@@ -150,6 +160,30 @@ function App() {
               </ProtectedRoute>
             } 
           />
+          <Route 
+            path="/treatments" 
+            element={
+              <ProtectedRoute requiredRole="patient">
+                <PatientTreatmentsPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/treatments/weightloss" 
+            element={
+              <ProtectedRoute requiredRole="patient">
+                <PatientTreatmentsPage treatmentType="Weight Loss" />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/treatments/mens-health" 
+            element={
+              <ProtectedRoute requiredRole="patient">
+                <PatientTreatmentsPage treatmentType="Men's Health" />
+              </ProtectedRoute>
+            } 
+          />
           
           {/* Admin Routes */}
           <Route 
@@ -157,6 +191,14 @@ function App() {
             element={
               <ProtectedRoute requiredRole="admin">
                 <AdminDashboard />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/patients" 
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminPatientsPage />
               </ProtectedRoute>
             } 
           />
@@ -179,6 +221,13 @@ function App() {
           <Route path="/admin/signup" element={<SignupPage />} />
           <Route path="/provider/signup" element={<SignupPage />} />
         </Routes>
+        <Toaster 
+          position="bottom-right"
+          expand={true}
+          visibleToasts={3}
+          closeButton={false}
+          theme="light"
+        />
       </AuthProvider>
     </ThemeProvider>
   )

@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ProviderDashboard as ProviderDashboardComponent, type Patient } from '@joinomu/ui'
+import { 
+  ProviderDashboard as ProviderDashboardComponent, 
+  type Patient,
+  ProviderPatientInformationDialog,
+  type ProviderPatientData
+} from '@joinomu/ui'
 import { useAuth } from '@/hooks/useAuth'
 import { authService } from '@joinomu/shared'
 import { supabase } from '@/utils/supabase/client'
@@ -12,97 +17,96 @@ export function ProviderDashboard() {
   const [providerData, setProviderData] = useState<any>(null)
   const [assignedPatients, setAssignedPatients] = useState<Patient[]>([])
   const [loading, setLoading] = useState(true)
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [selectedPatient, setSelectedPatient] = useState<ProviderPatientData | null>(null)
 
   useEffect(() => {
     const fetchProviderData = async () => {
       if (user?.id) {
         // Use the working role detection to check if user is a provider
-        const { roles, primaryRole } = await authService.fetchUserRoles(user.id)
+        const userRole = await authService.getUserRole(user.id)
         
-        if (!roles.includes('provider')) {
+        if (userRole !== 'provider') {
           // User is not a provider, redirect to home
           navigate('/')
           setLoading(false)
           return
         }
 
-        // If they are a provider, get provider details and patients
-        let currentProviderData: any = null
+        // Get provider profile and provider details
+        const { data: profileData } = await authService.getUserProfile(user.id)
+        const { data: providerData } = await authService.getRoleData(user.id, 'provider')
 
-        // Get provider details using RPC function to bypass RLS
-        try {
-          const { data: providerData, error: providerError } = await supabase
-            .rpc('get_provider_by_user_id', { user_uuid: user.id })
-
-          if (!providerError && providerData && providerData.length > 0) {
-            currentProviderData = providerData[0]
-            console.log('Provider data fetched via RPC:', currentProviderData)
-          } else {
-            console.log('No provider data found via RPC:', providerError)
+        if (profileData && providerData) {
+          const currentProviderData = {
+            id: providerData.id,
+            profile_id: user.id,
+            first_name: profileData.first_name,
+            last_name: profileData.last_name,
+            email: profileData.email,
+            specialty: providerData.specialty,
+            license_number: providerData.license_number,
+            phone: providerData.phone,
+            active: providerData.active
           }
-        } catch (error) {
-          console.log('Error fetching provider data:', error)
-        }
-
-        // Set provider data (real or fallback)
-        if (currentProviderData) {
           setProviderData(currentProviderData)
         } else {
-          currentProviderData = {
+          // Fallback if no data found
+          const fallbackData = {
             id: 'provider-' + user.id,
+            profile_id: user.id,
             first_name: 'Provider',
             last_name: 'User',
             email: user.email
           }
-          setProviderData(currentProviderData)
+          setProviderData(fallbackData)
         }
 
-        // Fetch assigned patients - try direct query since RPC has type issues
-        if (currentProviderData && currentProviderData.id) {
+        // Fetch assigned patients using the auth service function with medications
+        if (user?.id) {
           try {
-            console.log('Fetching patients for provider ID:', currentProviderData.id)
-            const { data: patientsData, error: patientsError } = await supabase
-              .from('patient_providers')
-              .select(`
-                treatment_type,
-                assigned_date,
-                is_primary,
-                patients (
-                  id,
-                  first_name,
-                  last_name,
-                  email
-                )
-              `)
-              .eq('provider_id', currentProviderData.id)
+            console.log('Fetching assigned patients for provider profile ID:', user.id)
+            const { data: patientsData, error: patientsError } = await authService.getAssignedPatients(user.id)
 
             if (!patientsError && patientsData) {
-              console.log('Patients data fetched directly:', patientsData)
-              // Filter out null patients and transform the data
-              const transformedPatients: Patient[] = patientsData
-                .filter((item: any) => item.patients !== null) // Filter out null patients
-                .map((item: any) => ({
-                  id: item.patients.id,
-                  name: `${item.patients.first_name} ${item.patients.last_name}`,
-                  careTeam: [`Dr. ${currentProviderData.first_name || 'Provider'} ${currentProviderData.last_name || 'User'}`],
-                  treatments: [item.treatment_type.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())],
-                  medications: [], // Would need to fetch from a medications table
-                  status: ['Active'], // Would need to fetch from patient status
-                  treatmentType: item.treatment_type,
-                  assignedDate: item.assigned_date,
-                  isPrimary: item.is_primary,
-                  email: item.patients.email
-                }))
+              console.log('Patients data fetched from auth service:', patientsData)
+              console.log('First patient medications raw data:', patientsData[0]?.medications)
               
-              console.log('Transformed patients:', transformedPatients)
+              // Transform the data to match the UI Patient interface
+              const transformedPatients: Patient[] = patientsData.map((patient: any) => {
+                console.log(`Transforming patient ${patient.first_name}: medications =`, patient.medications)
+                return {
+                  id: patient.patient_id || patient.id,
+                  profile_id: patient.profile_id,
+                  first_name: patient.first_name,
+                  last_name: patient.last_name,
+                  name: `${patient.first_name} ${patient.last_name}`,
+                  email: patient.email,
+                  phone: patient.phone,
+                  date_of_birth: patient.date_of_birth,
+                  has_completed_intake: patient.has_completed_intake,
+                  careTeam: [`Dr. ${profileData?.first_name || 'Provider'} ${profileData?.last_name || 'User'}`],
+                  treatments: [patient.treatment_type?.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) || 'General Care'],
+                  medications: patient.medications || [],
+                  status: ['Active'],
+                  treatmentType: patient.treatment_type,
+                  assigned_date: patient.assigned_date,
+                  assignedDate: patient.assigned_date,
+                  isPrimary: patient.is_primary,
+                  created_at: patient.created_at
+                }
+              })
+              
+              console.log('Transformed patients with medications:', transformedPatients)
+              console.log('First transformed patient medications:', transformedPatients[0]?.medications)
               setAssignedPatients(transformedPatients)
             } else {
-              console.log('No patients found directly:', patientsError)
+              console.log('No patients found from auth service:', patientsError)
               setAssignedPatients([])
             }
           } catch (patientsError) {
-            console.log('Error fetching patients directly:', patientsError)
-            setAssignedPatients([]) // Set empty array if can't fetch
+            console.log('Error fetching patients from auth service:', patientsError)
+            setAssignedPatients([])
           }
         }
       }
@@ -137,10 +141,25 @@ export function ProviderDashboard() {
         <div className="text-center space-y-4">
           <h1 className="text-2xl font-bold">Access Denied</h1>
           <p className="text-muted-foreground">You don't have provider privileges.</p>
-          <button onClick={() => navigate('/')} className="px-4 py-2 bg-blue-600 text-white rounded">Return to Home</button>
+          <button onClick={() => navigate('/')} className="px-4 py-2 bg-primary text-primary-foreground rounded">Return to Home</button>
         </div>
       </div>
     )
+  }
+
+  const handlePatientClick = (patient: Patient) => {
+    // Convert Patient to ProviderPatientData format
+    const providerPatientData: ProviderPatientData = {
+      id: patient.id,
+      name: patient.name,
+      email: patient.email,
+      treatmentType: patient.treatmentType,
+      assignedDate: patient.assignedDate,
+      isPrimary: patient.isPrimary,
+      patientId: patient.id
+    }
+    setSelectedPatient(providerPatientData)
+    setDialogOpen(true)
   }
 
   const userData = {
@@ -150,14 +169,22 @@ export function ProviderDashboard() {
   }
 
   return (
-    <ProviderDashboardComponent
-      user={userData}
-      onLogout={handleSignOut}
-      activeItem={activeItem}
-      showPatientTable={activeItem === 'Patients'}
-      onNavigate={handleNavigate}
-      providerId={providerData?.id}
-      assignedPatients={assignedPatients}
-    />
+    <>
+      <ProviderDashboardComponent
+        user={userData}
+        onLogout={handleSignOut}
+        activeItem={activeItem}
+        showPatientTable={activeItem === 'Patients'}
+        onNavigate={handleNavigate}
+        providerId={providerData?.id}
+        assignedPatients={assignedPatients}
+        onPatientClick={handlePatientClick}
+      />
+      <ProviderPatientInformationDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        patient={selectedPatient}
+      />
+    </>
   )
 }
