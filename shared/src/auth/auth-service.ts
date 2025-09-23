@@ -436,6 +436,61 @@ export class AuthService {
   }
 
   /**
+   * Get patient medication preferences for provider view
+   */
+  async getPatientMedicationPreferences(patientId: string) {
+    try {
+      console.log('🔍 Getting medication preferences for patient:', patientId)
+      
+      const { data, error } = await supabase
+        .from('patient_medication_preferences')
+        .select(`
+          id,
+          preferred_dosage,
+          frequency,
+          status,
+          requested_date,
+          notes,
+          medications:medication_id (
+            id,
+            name,
+            brand_name,
+            description
+          ),
+          medication_approvals (
+            approval_date,
+            provider_notes
+          )
+        `)
+        .eq('patient_id', patientId)
+        .order('requested_date', { ascending: false })
+
+      if (error) {
+        console.error('❌ Error fetching patient medication preferences:', error)
+        return { data: [], error }
+      }
+
+      // Transform the data to match the PatientMedicationPreference interface
+      const transformedPreferences = (data || []).map((pref: any) => ({
+        id: pref.id,
+        medicationName: pref.medications ? `${pref.medications.name} (${pref.medications.brand_name})` : 'Unknown Medication',
+        dosage: pref.preferred_dosage || 'Not specified',
+        frequency: pref.frequency || 'As needed',
+        status: pref.status,
+        requestedDate: pref.requested_date,
+        approvedDate: pref.medication_approvals?.[0]?.approval_date || null,
+        providerNotes: pref.medication_approvals?.[0]?.provider_notes || pref.notes || null
+      }))
+
+      console.log('✅ Retrieved patient medication preferences:', transformedPreferences)
+      return { data: transformedPreferences, error: null }
+    } catch (error) {
+      console.error('❌ Exception fetching patient medication preferences:', error)
+      return { data: [], error }
+    }
+  }
+
+  /**
    * Listen for auth state changes
    */
   onAuthStateChange(callback: (event: any, session: any) => void) {

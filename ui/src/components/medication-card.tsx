@@ -1,6 +1,7 @@
 import * as React from "react"
 import { Card, CardContent } from "./card"
 import { Separator } from "./separator"
+import { Badge } from "./badge"
 import { cn } from "../lib/utils"
 
 export interface MedicationCardProps {
@@ -17,6 +18,10 @@ export interface MedicationCardProps {
    */
   supply: string
   /**
+   * Optional status for the medication
+   */
+  status?: 'pending' | 'approved' | 'denied' | 'discontinued' | 'active' | 'shipped' | 'delivered'
+  /**
    * Optional additional CSS classes
    */
   className?: string
@@ -30,9 +35,27 @@ export function MedicationCard({
   medicationName,
   dosage,
   supply,
+  status,
   className,
   onClick
 }: MedicationCardProps) {
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case 'approved':
+      case 'active':
+      case 'delivered':
+        return 'default' as const
+      case 'pending':
+      case 'shipped':
+        return 'secondary' as const
+      case 'denied':
+      case 'discontinued':
+        return 'destructive' as const
+      default:
+        return 'outline' as const
+    }
+  }
+
   return (
     <Card 
       className={cn(
@@ -44,9 +67,19 @@ export function MedicationCard({
     >
       <CardContent className="p-4">
         <div className="space-y-1">
-          <h3 className="text-base font-semibold leading-none tracking-tight text-foreground">
-            {medicationName}
-          </h3>
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="text-base font-semibold leading-none tracking-tight text-foreground">
+              {medicationName}
+            </h3>
+            {status && (
+              <Badge 
+                variant={getStatusBadgeVariant(status)}
+                className="capitalize text-xs"
+              >
+                {status}
+              </Badge>
+            )}
+          </div>
           <div className="flex items-center text-sm text-muted-foreground">
             <span>{dosage}</span>
             <Separator orientation="vertical" className="mx-2 h-4" />
