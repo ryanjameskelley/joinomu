@@ -51,6 +51,7 @@ export * from './components/patient-information-dialog'
 export * from './components/simplified-patient-information-dialog'
 export * from './components/provider-patient-information-dialog'
 export * from './components/enhanced-patient-information-dialog'
+export * from './components/medication-preferences-dialog'
 export * from './components/toast'
 
 // Form Components
