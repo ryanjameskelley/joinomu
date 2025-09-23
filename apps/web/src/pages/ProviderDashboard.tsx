@@ -147,19 +147,46 @@ export function ProviderDashboard() {
     )
   }
 
-  const handlePatientClick = (patient: Patient) => {
-    // Convert Patient to ProviderPatientData format
-    const providerPatientData: ProviderPatientData = {
-      id: patient.id,
-      name: patient.name,
-      email: patient.email,
-      treatmentType: patient.treatmentType,
-      assignedDate: patient.assignedDate,
-      isPrimary: patient.isPrimary,
-      patientId: patient.id
+  const handlePatientClick = async (patient: Patient) => {
+    // Fetch patient medication preferences
+    try {
+      console.log('🔍 Fetching medication preferences for patient:', patient.id)
+      const { data: medicationPreferences } = await authService.getPatientMedicationPreferences(patient.id)
+      
+      // Convert Patient to ProviderPatientData format including medication preferences
+      const providerPatientData: ProviderPatientData = {
+        id: patient.id,
+        name: patient.name,
+        email: patient.email,
+        dateOfBirth: patient.date_of_birth,
+        gender: patient.gender,
+        patientId: patient.id,
+        phone: patient.phone,
+        treatmentType: patient.treatmentType,
+        assignedDate: patient.assignedDate,
+        isPrimary: patient.isPrimary,
+        medicationPreferences: medicationPreferences || []
+      }
+      
+      console.log('✅ Provider patient data with preferences:', providerPatientData)
+      setSelectedPatient(providerPatientData)
+      setDialogOpen(true)
+    } catch (error) {
+      console.error('❌ Error fetching patient medication preferences:', error)
+      // Fallback to basic patient data without preferences
+      const providerPatientData: ProviderPatientData = {
+        id: patient.id,
+        name: patient.name,
+        email: patient.email,
+        treatmentType: patient.treatmentType,
+        assignedDate: patient.assignedDate,
+        isPrimary: patient.isPrimary,
+        patientId: patient.id,
+        medicationPreferences: []
+      }
+      setSelectedPatient(providerPatientData)
+      setDialogOpen(true)
     }
-    setSelectedPatient(providerPatientData)
-    setDialogOpen(true)
   }
 
   const userData = {

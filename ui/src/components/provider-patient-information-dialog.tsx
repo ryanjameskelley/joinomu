@@ -26,6 +26,9 @@ import {
   BreadcrumbSeparator,
 } from "./breadcrumb"
 import { Button } from "./button"
+import { MedicationCard } from "./medication-card"
+import { Card, CardContent, CardHeader, CardTitle } from "./card"
+import { Label } from "./label"
 import {
   Dialog,
   DialogContent,
@@ -43,6 +46,17 @@ import {
   SidebarProvider,
 } from "./sidebar"
 
+export interface PatientMedicationPreference {
+  id: string
+  medicationName: string
+  dosage: string
+  frequency?: string
+  status: 'pending' | 'approved' | 'denied' | 'discontinued'
+  requestedDate: string
+  approvedDate?: string
+  providerNotes?: string
+}
+
 export interface ProviderPatientData {
   id: string
   name: string
@@ -55,6 +69,7 @@ export interface ProviderPatientData {
   treatmentType?: string
   assignedDate?: string
   isPrimary?: boolean
+  medicationPreferences?: PatientMedicationPreference[]
 }
 
 interface ProviderPatientInformationDialogProps {
@@ -78,8 +93,24 @@ export function ProviderPatientInformationDialog({
 }: ProviderPatientInformationDialogProps) {
   const [isFullscreen, setIsFullscreen] = React.useState(false)
   const [activeTab, setActiveTab] = React.useState("Patient Information")
+  const [selectedMedication, setSelectedMedication] = React.useState<PatientMedicationPreference | null>(null)
   
   if (!patient) return null
+
+  const getStartDate = (medication: PatientMedicationPreference) => {
+    if (medication.status === 'approved' && medication.approvedDate) {
+      return new Date(medication.approvedDate).toLocaleDateString()
+    }
+    if (medication.status === 'pending' || medication.status === 'denied') {
+      return 'Not started'
+    }
+    return 'Not started'
+  }
+
+  const handleBackToMedications = () => {
+    setSelectedMedication(null)
+    setActiveTab("Medications")
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -137,12 +168,34 @@ export function ProviderPatientInformationDialog({
                 <Breadcrumb>
                   <BreadcrumbList>
                     <BreadcrumbItem className="hidden md:block">
-                      <BreadcrumbLink href="#">Patient Information</BreadcrumbLink>
+                      <BreadcrumbLink 
+                        href="#" 
+                        onClick={() => {
+                          setActiveTab("Patient Information")
+                          setSelectedMedication(null)
+                        }}
+                      >
+                        Patient Information
+                      </BreadcrumbLink>
                     </BreadcrumbItem>
                     <BreadcrumbSeparator className="hidden md:block" />
-                    <BreadcrumbItem>
-                      <BreadcrumbPage>{activeTab}</BreadcrumbPage>
-                    </BreadcrumbItem>
+                    {selectedMedication ? (
+                      <>
+                        <BreadcrumbItem>
+                          <BreadcrumbLink href="#" onClick={handleBackToMedications}>
+                            Medications
+                          </BreadcrumbLink>
+                        </BreadcrumbItem>
+                        <BreadcrumbSeparator />
+                        <BreadcrumbItem>
+                          <BreadcrumbPage>{selectedMedication.medicationName}</BreadcrumbPage>
+                        </BreadcrumbItem>
+                      </>
+                    ) : (
+                      <BreadcrumbItem>
+                        <BreadcrumbPage>{activeTab}</BreadcrumbPage>
+                      </BreadcrumbItem>
+                    )}
                   </BreadcrumbList>
                 </Breadcrumb>
               </div>
@@ -206,10 +259,72 @@ export function ProviderPatientInformationDialog({
 
               {activeTab === "Medications" && (
                 <div className="space-y-4">
-                  <div className="bg-muted/50 rounded-xl p-4">
-                    <h3 className="font-semibold mb-2">Current Medications</h3>
-                    <p className="text-sm text-muted-foreground">No medications currently prescribed for this patient.</p>
-                  </div>
+                  {selectedMedication ? (
+                    // Medication detail view within Medications tab
+                    <div className="space-y-4">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Medication Details</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <Label className="text-sm font-medium">Medication Name</Label>
+                              <p className="text-lg font-semibold">{selectedMedication.medicationName}</p>
+                            </div>
+                            <div>
+                              <Label className="text-sm font-medium">Status</Label>
+                              <p className="capitalize">{selectedMedication.status}</p>
+                            </div>
+                            <div>
+                              <Label className="text-sm font-medium">Dosage</Label>
+                              <p>{selectedMedication.dosage}</p>
+                            </div>
+                            <div>
+                              <Label className="text-sm font-medium">Frequency</Label>
+                              <p>{selectedMedication.frequency || 'Not specified'}</p>
+                            </div>
+                            <div>
+                              <Label className="text-sm font-medium">Requested Date</Label>
+                              <p>{new Date(selectedMedication.requestedDate).toLocaleDateString()}</p>
+                            </div>
+                            <div>
+                              <Label className="text-sm font-medium">Start Date</Label>
+                              <p>{getStartDate(selectedMedication)}</p>
+                            </div>
+                          </div>
+                          {selectedMedication.providerNotes && (
+                            <div>
+                              <Label className="text-sm font-medium">Provider Notes</Label>
+                              <p className="text-sm text-muted-foreground">{selectedMedication.providerNotes}</p>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </div>
+                  ) : (
+                    // Medication list view
+                    <div className="bg-muted/50 rounded-xl p-4">
+                      <h3 className="font-semibold mb-4">Patient Medication Preferences</h3>
+                      {!patient.medicationPreferences || patient.medicationPreferences.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">No medication preferences found for this patient.</p>
+                      ) : (
+                        <div className="space-y-4 max-h-80 overflow-y-auto overflow-x-visible p-2 -m-2">
+                          {patient.medicationPreferences.map((medication) => (
+                            <MedicationCard
+                              key={medication.id}
+                              medicationName={medication.medicationName}
+                              dosage={medication.dosage}
+                              supply={medication.frequency || 'As needed'}
+                              status={medication.status}
+                              onClick={() => setSelectedMedication(medication)}
+                              className="w-full max-w-none cursor-pointer"
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
