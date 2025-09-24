@@ -17,7 +17,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const loadUserData = async (userId: string) => {
     try {
-      const role = await authService.getUserRole(userId)
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('getUserRole timeout')), 10000)
+      )
+      
+      const role = await Promise.race([
+        authService.getUserRole(userId),
+        timeoutPromise
+      ]) as UserRole | null
+      
       setUserRole(role)
     } catch (error) {
       console.error('Error loading user data:', error)
@@ -51,11 +60,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Listen for auth changes
     const subscription = authService.onAuthStateChange(
       async (event, session) => {
+        console.log('🔄 Auth state change event:', event, 'session:', !!session)
+        
         setSession(session)
         setUser(session?.user ?? null)
         
         if (session?.user) {
-          await loadUserData(session.user.id)
+          try {
+            await loadUserData(session.user.id)
+          } catch (error) {
+            console.error('Error loading user data on auth change:', error)
+            setUserRole(null)
+          }
         } else {
           setUserRole(null)
         }
@@ -74,7 +90,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }
 
   const signOut = async () => {
+    setLoading(true)
     const { error } = await authService.signOut()
+    
+    // Force clear all auth state immediately to prevent stale state
+    setUser(null)
+    setSession(null)
+    setUserRole(null)
+    setLoading(false)
+    
     return { error }
   }
 

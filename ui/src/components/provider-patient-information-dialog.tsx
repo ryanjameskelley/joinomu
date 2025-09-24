@@ -16,6 +16,7 @@ import {
   Activity,
   Maximize,
   Minimize,
+  Save,
 } from "lucide-react"
 import {
   Breadcrumb,
@@ -29,6 +30,15 @@ import { Button } from "./button"
 import { MedicationCard } from "./medication-card"
 import { Card, CardContent, CardHeader, CardTitle } from "./card"
 import { Label } from "./label"
+import { Input } from "./input"
+import { Textarea } from "./textarea"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./select"
 import {
   Dialog,
   DialogContent,
@@ -76,6 +86,12 @@ interface ProviderPatientInformationDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   patient: ProviderPatientData | null
+  onMedicationUpdate?: (medicationId: string, updates: {
+    status?: string
+    dosage?: string
+    frequency?: string
+    providerNotes?: string
+  }) => Promise<void>
 }
 
 const patientNavData = {
@@ -89,11 +105,14 @@ const patientNavData = {
 export function ProviderPatientInformationDialog({
   open,
   onOpenChange,
-  patient
+  patient,
+  onMedicationUpdate
 }: ProviderPatientInformationDialogProps) {
   const [isFullscreen, setIsFullscreen] = React.useState(false)
   const [activeTab, setActiveTab] = React.useState("Patient Information")
   const [selectedMedication, setSelectedMedication] = React.useState<PatientMedicationPreference | null>(null)
+  const [editedMedication, setEditedMedication] = React.useState<PatientMedicationPreference | null>(null)
+  const [isSaving, setIsSaving] = React.useState(false)
   
   if (!patient) return null
 
@@ -109,8 +128,41 @@ export function ProviderPatientInformationDialog({
 
   const handleBackToMedications = () => {
     setSelectedMedication(null)
+    setEditedMedication(null)
     setActiveTab("Medications")
   }
+
+  const handleMedicationSelect = (medication: PatientMedicationPreference) => {
+    setSelectedMedication(medication)
+    setEditedMedication({...medication})
+  }
+
+  const handleSaveMedication = async () => {
+    if (!editedMedication || !onMedicationUpdate) return
+    
+    setIsSaving(true)
+    try {
+      await onMedicationUpdate(editedMedication.id, {
+        status: editedMedication.status,
+        dosage: editedMedication.dosage,
+        frequency: editedMedication.frequency,
+        providerNotes: editedMedication.providerNotes
+      })
+      
+      // Update the selected medication with the new data
+      setSelectedMedication(editedMedication)
+    } catch (error) {
+      console.error('Error saving medication:', error)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const hasChanges = editedMedication && selectedMedication && 
+    (editedMedication.status !== selectedMedication.status ||
+     editedMedication.dosage !== selectedMedication.dosage ||
+     editedMedication.frequency !== selectedMedication.frequency ||
+     editedMedication.providerNotes !== selectedMedication.providerNotes)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -259,12 +311,23 @@ export function ProviderPatientInformationDialog({
 
               {activeTab === "Medications" && (
                 <div className="space-y-4">
-                  {selectedMedication ? (
-                    // Medication detail view within Medications tab
+                  {selectedMedication && editedMedication ? (
+                    // Editable medication detail view within Medications tab
                     <div className="space-y-4">
                       <Card>
-                        <CardHeader>
+                        <CardHeader className="flex flex-row items-center justify-between">
                           <CardTitle>Medication Details</CardTitle>
+                          {hasChanges && (
+                            <Button 
+                              onClick={handleSaveMedication}
+                              disabled={isSaving}
+                              size="sm"
+                              className="gap-2"
+                            >
+                              <Save className="h-4 w-4" />
+                              {isSaving ? 'Saving...' : 'Save Changes'}
+                            </Button>
+                          )}
                         </CardHeader>
                         <CardContent className="space-y-4">
                           <div className="grid grid-cols-2 gap-4">
@@ -274,15 +337,42 @@ export function ProviderPatientInformationDialog({
                             </div>
                             <div>
                               <Label className="text-sm font-medium">Status</Label>
-                              <p className="capitalize">{selectedMedication.status}</p>
+                              <Select 
+                                value={editedMedication.status} 
+                                onValueChange={(value) => setEditedMedication(prev => 
+                                  prev ? {...prev, status: value as PatientMedicationPreference['status']} : null
+                                )}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="pending">Pending</SelectItem>
+                                  <SelectItem value="approved">Approved</SelectItem>
+                                  <SelectItem value="denied">Denied</SelectItem>
+                                  <SelectItem value="discontinued">Discontinued</SelectItem>
+                                </SelectContent>
+                              </Select>
                             </div>
                             <div>
                               <Label className="text-sm font-medium">Dosage</Label>
-                              <p>{selectedMedication.dosage}</p>
+                              <Input
+                                value={editedMedication.dosage}
+                                onChange={(e) => setEditedMedication(prev => 
+                                  prev ? {...prev, dosage: e.target.value} : null
+                                )}
+                                placeholder="Enter dosage"
+                              />
                             </div>
                             <div>
                               <Label className="text-sm font-medium">Frequency</Label>
-                              <p>{selectedMedication.frequency || 'Not specified'}</p>
+                              <Input
+                                value={editedMedication.frequency || ''}
+                                onChange={(e) => setEditedMedication(prev => 
+                                  prev ? {...prev, frequency: e.target.value} : null
+                                )}
+                                placeholder="Enter frequency"
+                              />
                             </div>
                             <div>
                               <Label className="text-sm font-medium">Requested Date</Label>
@@ -293,12 +383,17 @@ export function ProviderPatientInformationDialog({
                               <p>{getStartDate(selectedMedication)}</p>
                             </div>
                           </div>
-                          {selectedMedication.providerNotes && (
-                            <div>
-                              <Label className="text-sm font-medium">Provider Notes</Label>
-                              <p className="text-sm text-muted-foreground">{selectedMedication.providerNotes}</p>
-                            </div>
-                          )}
+                          <div>
+                            <Label className="text-sm font-medium">Provider Notes</Label>
+                            <Textarea
+                              value={editedMedication.providerNotes || ''}
+                              onChange={(e) => setEditedMedication(prev => 
+                                prev ? {...prev, providerNotes: e.target.value} : null
+                              )}
+                              placeholder="Add provider notes..."
+                              rows={3}
+                            />
+                          </div>
                         </CardContent>
                       </Card>
                     </div>
@@ -317,7 +412,7 @@ export function ProviderPatientInformationDialog({
                               dosage={medication.dosage}
                               supply={medication.frequency || 'As needed'}
                               status={medication.status}
-                              onClick={() => setSelectedMedication(medication)}
+                              onClick={() => handleMedicationSelect(medication)}
                               className="w-full max-w-none cursor-pointer"
                             />
                           ))}

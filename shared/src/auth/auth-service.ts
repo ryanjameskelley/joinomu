@@ -336,12 +336,16 @@ export class AuthService {
   async getAvailableMedications() {
     try {
       console.log('🔍 Getting available medications')
+      console.log('🔄 Making Supabase query...')
       
       const { data, error } = await supabase
         .from('medications')
         .select('*')
         .eq('active', true)
         .order('name')
+
+      console.log('🔄 Supabase query completed')
+      console.log('🔍 Query result - data:', data, 'error:', error)
 
       if (error) {
         console.error('❌ Error fetching medications:', error)
@@ -441,29 +445,25 @@ export class AuthService {
   async getPatientMedicationPreferences(patientId: string) {
     try {
       console.log('🔍 Getting medication preferences for patient:', patientId)
+      console.log('🔄 Starting Supabase query...')
       
+      // Try simple query first - temporarily check if any records exist at all
+      console.log('🔄 First checking if any records exist...')
+      const { count } = await supabase
+        .from('patient_medication_preferences')
+        .select('*', { count: 'exact', head: true })
+        .eq('patient_id', patientId)
+      
+      console.log('🔄 Record count for patient:', count)
+      
+      // Now try the actual query
       const { data, error } = await supabase
         .from('patient_medication_preferences')
-        .select(`
-          id,
-          preferred_dosage,
-          frequency,
-          status,
-          requested_date,
-          notes,
-          medications:medication_id (
-            id,
-            name,
-            brand_name,
-            description
-          ),
-          medication_approvals (
-            approval_date,
-            provider_notes
-          )
-        `)
+        .select('*')
         .eq('patient_id', patientId)
         .order('requested_date', { ascending: false })
+      
+      console.log('🔄 Supabase query completed:', { data, error })
 
       if (error) {
         console.error('❌ Error fetching patient medication preferences:', error)
@@ -473,13 +473,13 @@ export class AuthService {
       // Transform the data to match the PatientMedicationPreference interface
       const transformedPreferences = (data || []).map((pref: any) => ({
         id: pref.id,
-        medicationName: pref.medications ? `${pref.medications.name} (${pref.medications.brand_name})` : 'Unknown Medication',
+        medicationName: `Medication ${pref.medication_id}`, // Temporary until we fix the join
         dosage: pref.preferred_dosage || 'Not specified',
         frequency: pref.frequency || 'As needed',
         status: pref.status,
         requestedDate: pref.requested_date,
-        approvedDate: pref.medication_approvals?.[0]?.approval_date || null,
-        providerNotes: pref.medication_approvals?.[0]?.provider_notes || pref.notes || null
+        approvedDate: null, // Temporary until we fix the join
+        providerNotes: pref.notes || null
       }))
 
       console.log('✅ Retrieved patient medication preferences:', transformedPreferences)
@@ -487,6 +487,148 @@ export class AuthService {
     } catch (error) {
       console.error('❌ Exception fetching patient medication preferences:', error)
       return { data: [], error }
+    }
+  }
+
+  /**
+   * Update medication preference for provider
+   */
+  async updateMedicationPreference(medicationPreferenceId: string, updates: {
+    status?: string
+    dosage?: string
+    frequency?: string
+    providerNotes?: string
+  }) {
+    try {
+      console.log('🔍 Updating medication preference:', medicationPreferenceId, updates)
+      console.log('🔄 Starting medication preference update flow...')
+      
+      // Get the current medication preference to check for status changes
+      const { data: currentPref, error: fetchError } = await supabase
+        .from('patient_medication_preferences')
+        .select('status, patient_id, medication_id')
+        .eq('id', medicationPreferenceId)
+        .single()
+      
+      // Get the current provider ID (we need this for approvals)
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        return { success: false, error: { message: 'Not authenticated' } }
+      }
+      
+      const { data: provider, error: providerError } = await supabase
+        .from('providers')
+        .select('id')
+        .eq('profile_id', user.id)
+        .single()
+        
+      if (providerError || !provider) {
+        return { success: false, error: { message: 'Provider not found' } }
+      }
+
+      if (fetchError) {
+        console.error('❌ Error fetching current preference:', fetchError)
+        return { success: false, error: fetchError }
+      }
+
+      const wasStatusChanged = updates.status && updates.status !== currentPref.status
+      const wasApproved = updates.status === 'approved' && currentPref.status !== 'approved'
+      
+      // Prepare update data for patient_medication_preferences
+      const updateData: any = {}
+      if (updates.status) updateData.status = updates.status
+      if (updates.dosage) updateData.preferred_dosage = updates.dosage
+      if (updates.frequency) updateData.frequency = updates.frequency
+      if (updates.providerNotes) updateData.notes = updates.providerNotes
+
+      console.log('🔄 Prepared update data:', updateData)
+      console.log('🔄 Status change detected:', wasStatusChanged, 'Was approved:', wasApproved)
+
+      // Update the medication preference
+      console.log('🔄 Executing Supabase update...')
+      const { data, error } = await supabase
+        .from('patient_medication_preferences')
+        .update(updateData)
+        .eq('id', medicationPreferenceId)
+        .select()
+
+      if (error) {
+        console.error('❌ Error updating medication preference:', error)
+        return { success: false, error }
+      }
+
+      console.log('✅ Updated medication preference:', data)
+      console.log('🔍 Verifying update - new status should be:', updates.status)
+
+      // If status changed to approved, create medication approval and order
+      if (wasApproved) {
+        console.log('🔄 Status changed to approved, creating medication approval and order...')
+        
+        try {
+          // Create medication approval record
+          const { data: approvalData, error: approvalError } = await supabase
+            .from('medication_approvals')
+            .insert({
+              preference_id: medicationPreferenceId,
+              provider_id: provider.id,
+              status: 'approved',
+              approved_dosage: updates.dosage || null,
+              approved_frequency: updates.frequency || null,
+              provider_notes: updates.providerNotes || null,
+              approval_date: new Date().toISOString()
+            })
+            .select()
+
+          if (approvalError) {
+            console.error('❌ Error creating medication approval:', approvalError)
+            // Continue anyway, the preference update succeeded
+          } else {
+            console.log('✅ Created medication approval:', approvalData)
+          }
+
+          // Create medication order if approval was successful
+          if (!approvalError && approvalData && approvalData[0]) {
+            // Get medication info for pricing
+            const { data: medicationInfo } = await supabase
+              .from('medications')
+              .select('unit_price')
+              .eq('id', currentPref.medication_id)
+              .single()
+            
+            const unitPrice = medicationInfo?.unit_price || 0
+            const quantity = 1 // Default quantity
+            
+            const { data: orderData, error: orderError } = await supabase
+              .from('medication_orders')
+              .insert({
+                approval_id: approvalData[0].id,
+                patient_id: currentPref.patient_id,
+                medication_id: currentPref.medication_id,
+                quantity: quantity,
+                unit_price: unitPrice,
+                total_amount: unitPrice * quantity,
+                payment_status: 'pending',
+                fulfillment_status: 'pending'
+              })
+              .select()
+            
+            if (orderError) {
+              console.error('❌ Error creating medication order:', orderError)
+            } else {
+              console.log('✅ Created medication order:', orderData)
+            }
+          }
+
+        } catch (approvalOrderError) {
+          console.error('❌ Exception creating approval/order:', approvalOrderError)
+          // Continue anyway, the preference update succeeded
+        }
+      }
+
+      return { success: true, data, error: null }
+    } catch (error) {
+      console.error('❌ Exception updating medication preference:', error)
+      return { success: false, error }
     }
   }
 
