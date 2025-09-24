@@ -79,9 +79,12 @@ export function PatientDashboard() {
         if (result.data) {
           console.log('✅ Setting medications:', result.data)
           setAvailableMedications(result.data)
+        } else {
+          console.log('❌ No medications data received:', result.error)
         }
         console.log('🔄 Opening dialog...')
         setMedicationDialogOpen(true)
+        console.log('✅ Dialog open state set to true')
         console.log('✅ Dialog should be open now')
       } catch (error) {
         console.error('❌ Failed to load medications:', error)

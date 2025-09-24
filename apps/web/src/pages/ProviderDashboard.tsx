@@ -9,6 +9,7 @@ import {
 import { useAuth } from '@/hooks/useAuth'
 import { authService } from '@joinomu/shared'
 import { supabase } from '@/utils/supabase/client'
+import { MedicationToast, dismissToast } from '@joinomu/ui'
 
 export function ProviderDashboard() {
   const { user } = useAuth()
@@ -19,6 +20,7 @@ export function ProviderDashboard() {
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedPatient, setSelectedPatient] = useState<ProviderPatientData | null>(null)
+  const [isLoadingPatient, setIsLoadingPatient] = useState(false)
 
   useEffect(() => {
     const fetchProviderData = async () => {
@@ -117,8 +119,16 @@ export function ProviderDashboard() {
   }, [user, navigate])
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    navigate('/')
+    try {
+      console.log('🔄 Provider dashboard: Starting sign out...')
+      await authService.signOut()
+      console.log('✅ Provider dashboard: Sign out successful, navigating to home')
+      navigate('/')
+    } catch (error) {
+      console.error('❌ Provider dashboard: Error signing out:', error)
+      // Force navigation even if sign out fails
+      navigate('/')
+    }
   }
 
   const handleNavigate = (item: string) => {
@@ -148,10 +158,20 @@ export function ProviderDashboard() {
   }
 
   const handlePatientClick = async (patient: Patient) => {
+    // Prevent multiple simultaneous calls
+    if (isLoadingPatient) {
+      console.log('🔄 Already loading patient, ignoring click')
+      return
+    }
+    
     // Fetch patient medication preferences
     try {
       console.log('🔍 Fetching medication preferences for patient:', patient.id)
-      const { data: medicationPreferences } = await authService.getPatientMedicationPreferences(patient.id)
+      console.log('🔍 Current dialog state:', dialogOpen)
+      setIsLoadingPatient(true)
+      const result = await authService.getPatientMedicationPreferences(patient.id)
+      console.log('🔍 Medication preferences result:', result)
+      const { data: medicationPreferences } = result
       
       // Convert Patient to ProviderPatientData format including medication preferences
       const providerPatientData: ProviderPatientData = {
@@ -169,8 +189,10 @@ export function ProviderDashboard() {
       }
       
       console.log('✅ Provider patient data with preferences:', providerPatientData)
+      console.log('🔄 Setting selected patient and opening dialog...')
       setSelectedPatient(providerPatientData)
       setDialogOpen(true)
+      console.log('🔄 Dialog should be open now')
     } catch (error) {
       console.error('❌ Error fetching patient medication preferences:', error)
       // Fallback to basic patient data without preferences
@@ -186,6 +208,52 @@ export function ProviderDashboard() {
       }
       setSelectedPatient(providerPatientData)
       setDialogOpen(true)
+    } finally {
+      setIsLoadingPatient(false)
+    }
+  }
+
+  const handleMedicationUpdate = async (medicationId: string, updates: {
+    status?: string
+    dosage?: string
+    frequency?: string
+    providerNotes?: string
+  }) => {
+    let savingToastId: string | number | undefined
+    
+    try {
+      // Show saving toast
+      savingToastId = MedicationToast.saving('medication preference')
+      
+      // Update the medication preference
+      const result = await authService.updateMedicationPreference(medicationId, updates)
+      
+      if (savingToastId) {
+        dismissToast(savingToastId)
+      }
+      
+      if (result.success) {
+        // Show success toast
+        MedicationToast.saved('medication preference')
+        
+        // If status was changed to approved, show additional message
+        if (updates.status === 'approved') {
+          MedicationToast.saved('medication order created')
+        }
+        
+        // Refresh the patient data to show updated medication preferences
+        if (selectedPatient) {
+          const { data: medicationPreferences } = await authService.getPatientMedicationPreferences(selectedPatient.id)
+          setSelectedPatient(prev => prev ? {...prev, medicationPreferences: medicationPreferences || []} : null)
+        }
+      } else {
+        MedicationToast.error('medication preference', result.error?.message || 'Unknown error')
+      }
+    } catch (error) {
+      if (savingToastId) {
+        dismissToast(savingToastId)
+      }
+      MedicationToast.error('medication preference', error instanceof Error ? error.message : 'Unknown error')
     }
   }
 
@@ -211,6 +279,7 @@ export function ProviderDashboard() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         patient={selectedPatient}
+        onMedicationUpdate={handleMedicationUpdate}
       />
     </>
   )
