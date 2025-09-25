@@ -40,7 +40,7 @@ export function dismissToast(toastId: string | number) {
 }
 
 // Specific toast molecules for common use cases
-export const MedicationToast = {
+export const Sonner = {
   saved: (medicationName: string) =>
     showToast({
       title: "Saved",
@@ -60,5 +60,15 @@ export const MedicationToast = {
       title: "Saving...",
       description: `Updating ${medicationName} information`,
       variant: 'info'
+    }),
+
+  copied: (refNumber: string) =>
+    showToast({
+      title: "Copied",
+      description: `${refNumber} copied to clipboard`,
+      variant: 'success'
     })
 }
+
+// Keep MedicationToast for backward compatibility
+export const MedicationToast = Sonner

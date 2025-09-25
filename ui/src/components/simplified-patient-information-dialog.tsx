@@ -92,7 +92,7 @@ export function SimplifiedPatientInformationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`overflow-hidden p-0 ${
+      <DialogContent className={`overflow-hidden p-0 bg-card ${
         isFullscreen 
           ? "w-[calc(100vw-16px)] h-[calc(100vh-16px)] max-w-none max-h-none" 
           : "md:max-h-[600px] md:max-w-[900px] lg:max-w-[1000px]"
@@ -106,7 +106,7 @@ export function SimplifiedPatientInformationDialog({
         
         <div className="flex h-full">
           {/* Simplified Navigation Sidebar */}
-          <div className="hidden md:flex w-64 border-r border-sidebar-border dark:border-transparent bg-[--dialog-bg] dark:bg-[#242424]">
+          <div className="hidden md:flex w-64 border-r border-sidebar-border dark:border-transparent bg-sidebar">
             <div className="flex flex-col w-full">
               <div className="p-4 border-b border-sidebar-border dark:border-transparent">
                 <h4 className="font-semibold text-sm text-sidebar-foreground/70 uppercase tracking-wide">
@@ -135,7 +135,7 @@ export function SimplifiedPatientInformationDialog({
           </div>
 
           {/* Main Content */}
-          <div className="flex flex-1 flex-col dark:bg-[#242424]">
+          <div className="flex flex-1 flex-col bg-card">
             {/* Header */}
             <header className="flex h-16 shrink-0 items-center gap-2 border-b border-sidebar-border dark:border-transparent px-4">
               <Button

@@ -59,10 +59,14 @@ export function PatientDashboard() {
 
   const handleLogout = async () => {
     try {
-      await signOut()
+      console.log('🔄 Patient dashboard: Starting sign out...')
+      await authService.signOut()
+      console.log('✅ Patient dashboard: Sign out successful, navigating to home')
       navigate('/')
     } catch (error) {
-      console.error('Logout failed:', error)
+      console.error('❌ Patient dashboard: Error signing out:', error)
+      // Force navigation even if sign out fails
+      navigate('/')
     }
   }
 

@@ -58,13 +58,12 @@ import {
 
 export interface PatientMedicationPreference {
   id: string
-  medicationName: string
-  dosage: string
+  medication_name: string
+  preferred_dosage: string
   frequency?: string
   status: 'pending' | 'approved' | 'denied' | 'discontinued'
-  requestedDate: string
-  approvedDate?: string
-  providerNotes?: string
+  requested_date: string
+  notes?: string
 }
 
 export interface ProviderPatientData {
@@ -117,8 +116,8 @@ export function ProviderPatientInformationDialog({
   if (!patient) return null
 
   const getStartDate = (medication: PatientMedicationPreference) => {
-    if (medication.status === 'approved' && medication.approvedDate) {
-      return new Date(medication.approvedDate).toLocaleDateString()
+    if (medication.status === 'approved') {
+      return 'Started'
     }
     if (medication.status === 'pending' || medication.status === 'denied') {
       return 'Not started'
@@ -144,7 +143,7 @@ export function ProviderPatientInformationDialog({
     try {
       await onMedicationUpdate(editedMedication.id, {
         status: editedMedication.status,
-        dosage: editedMedication.dosage,
+        dosage: editedMedication.preferred_dosage,
         frequency: editedMedication.frequency,
         providerNotes: editedMedication.providerNotes
       })
@@ -160,13 +159,13 @@ export function ProviderPatientInformationDialog({
 
   const hasChanges = editedMedication && selectedMedication && 
     (editedMedication.status !== selectedMedication.status ||
-     editedMedication.dosage !== selectedMedication.dosage ||
+     editedMedication.preferred_dosage !== selectedMedication.preferred_dosage ||
      editedMedication.frequency !== selectedMedication.frequency ||
      editedMedication.providerNotes !== selectedMedication.providerNotes)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`overflow-hidden p-0 ${
+      <DialogContent className={`overflow-hidden p-0 bg-card ${
         isFullscreen 
           ? "w-[calc(100vw-16px)] h-[calc(100vh-16px)] max-w-none max-h-none" 
           : "md:max-h-[500px] md:max-w-[700px] lg:max-w-[800px]"
@@ -176,7 +175,7 @@ export function ProviderPatientInformationDialog({
           View and manage patient information here from provider perspective.
         </DialogDescription>
         <SidebarProvider className="items-start">
-          <Sidebar collapsible="none" className="hidden md:flex w-64 border-r border-sidebar-border dark:border-transparent bg-[--dialog-bg] dark:bg-[#242424]">
+          <Sidebar collapsible="none" className="hidden md:flex w-64 border-r border-sidebar-border dark:border-transparent">
             <SidebarContent>
               <SidebarGroup>
                 <SidebarGroupContent>
@@ -200,7 +199,7 @@ export function ProviderPatientInformationDialog({
               </SidebarGroup>
             </SidebarContent>
           </Sidebar>
-          <main className={`flex flex-1 flex-col overflow-hidden dark:bg-[#242424] ${
+          <main className={`flex flex-1 flex-col overflow-hidden bg-card ${
             isFullscreen ? "h-full" : "h-[480px]"
           }`}>
             <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
@@ -240,7 +239,7 @@ export function ProviderPatientInformationDialog({
                         </BreadcrumbItem>
                         <BreadcrumbSeparator />
                         <BreadcrumbItem>
-                          <BreadcrumbPage>{selectedMedication.medicationName}</BreadcrumbPage>
+                          <BreadcrumbPage>{selectedMedication.medication_name}</BreadcrumbPage>
                         </BreadcrumbItem>
                       </>
                     ) : (
@@ -333,7 +332,7 @@ export function ProviderPatientInformationDialog({
                           <div className="grid grid-cols-2 gap-4">
                             <div>
                               <Label className="text-sm font-medium">Medication Name</Label>
-                              <p className="text-lg font-semibold">{selectedMedication.medicationName}</p>
+                              <p className="text-lg font-semibold">{selectedMedication.medication_name}</p>
                             </div>
                             <div>
                               <Label className="text-sm font-medium">Status</Label>
@@ -357,9 +356,9 @@ export function ProviderPatientInformationDialog({
                             <div>
                               <Label className="text-sm font-medium">Dosage</Label>
                               <Input
-                                value={editedMedication.dosage}
+                                value={editedMedication.preferred_dosage}
                                 onChange={(e) => setEditedMedication(prev => 
-                                  prev ? {...prev, dosage: e.target.value} : null
+                                  prev ? {...prev, preferred_dosage: e.target.value} : null
                                 )}
                                 placeholder="Enter dosage"
                               />
@@ -376,7 +375,7 @@ export function ProviderPatientInformationDialog({
                             </div>
                             <div>
                               <Label className="text-sm font-medium">Requested Date</Label>
-                              <p>{new Date(selectedMedication.requestedDate).toLocaleDateString()}</p>
+                              <p>{new Date(selectedMedication.requested_date).toLocaleDateString()}</p>
                             </div>
                             <div>
                               <Label className="text-sm font-medium">Start Date</Label>
@@ -404,12 +403,12 @@ export function ProviderPatientInformationDialog({
                       {!patient.medicationPreferences || patient.medicationPreferences.length === 0 ? (
                         <p className="text-sm text-muted-foreground">No medication preferences found for this patient.</p>
                       ) : (
-                        <div className="space-y-4 max-h-80 overflow-y-auto overflow-x-visible p-2 -m-2">
+                        <div className="space-y-4">
                           {patient.medicationPreferences.map((medication) => (
                             <MedicationCard
                               key={medication.id}
-                              medicationName={medication.medicationName}
-                              dosage={medication.dosage}
+                              medicationName={medication.medication_name}
+                              dosage={medication.preferred_dosage}
                               supply={medication.frequency || 'As needed'}
                               status={medication.status}
                               onClick={() => handleMedicationSelect(medication)}

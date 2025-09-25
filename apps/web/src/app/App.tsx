@@ -14,13 +14,13 @@ import { AdminPatientsPage } from '@/pages/AdminPatientsPage'
 import { PatientTreatmentsPage } from '@/pages/PatientTreatmentsPage'
 
 function LandingPage() {
-  const { user, loading, userRole } = useAuth()
+  const { user, loading, userRole, isSigningOut } = useAuth()
   const navigate = useNavigate()
   
-  // Auto-redirect users to their appropriate dashboard
+  // Auto-redirect users to their appropriate dashboard (but not if they just signed out)
   React.useEffect(() => {
-    console.log('🔍 LandingPage: Auth state check:', { loading, user: !!user, userRole })
-    if (!loading && user && userRole) {
+    console.log('🔍 LandingPage: Auth state check:', { loading, user: !!user, userRole, isSigningOut })
+    if (!loading && user && userRole && !isSigningOut) {
       console.log(`✅ Auto-redirecting ${userRole} to dashboard`)
       switch (userRole) {
         case 'admin':
@@ -37,8 +37,10 @@ function LandingPage() {
       console.log('❌ User authenticated but no role found:', user.id)
     } else if (!loading && !user) {
       console.log('❌ No user authenticated')
+    } else if (isSigningOut) {
+      console.log('🔄 User is signing out, preventing auto-redirect')
     }
-  }, [loading, user, userRole, navigate])
+  }, [loading, user, userRole, isSigningOut, navigate])
   
   if (loading) {
     return (
@@ -48,7 +50,7 @@ function LandingPage() {
     )
   }
 
-  if (user && userRole) {
+  if (user && userRole && !isSigningOut) {
     // This should not show due to the useEffect redirect above, but just in case
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -90,11 +92,11 @@ function ProtectedRoute({
   children: React.ReactNode
   requiredRole?: 'patient' | 'admin' | 'provider'
 }) {
-  const { user, loading, userRole } = useAuth()
+  const { user, loading, userRole, isSigningOut } = useAuth()
   const navigate = useNavigate()
 
   React.useEffect(() => {
-    if (!loading) {
+    if (!loading && !isSigningOut) {
       if (!user) {
         navigate('/login', { replace: true })
       } else if (requiredRole && userRole !== requiredRole) {
@@ -114,7 +116,7 @@ function ProtectedRoute({
         }
       }
     }
-  }, [user, loading, userRole, requiredRole, navigate])
+  }, [user, loading, userRole, isSigningOut, requiredRole, navigate])
 
   if (loading) {
     return (
@@ -139,7 +141,7 @@ function App() {
   return (
     <ThemeProvider
       attribute="class"
-      defaultTheme="dark"
+      defaultTheme="system"
       enableSystem
       disableTransitionOnChange
       storageKey="joinomu-theme"

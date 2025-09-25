@@ -47,7 +47,14 @@ export const getSupabaseConfig = () => {
 // Create and export the Supabase client
 export const createSupabaseClient = () => {
   const config = getSupabaseConfig()
-  return createClient(config.url, config.anonKey)
+  return createClient(config.url, config.anonKey, {
+    auth: {
+      // Prevent automatic logout on invalid session
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true
+    }
+  })
 }
 
 // Default export for convenience - will be created lazily when first imported

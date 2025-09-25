@@ -22,6 +22,18 @@ export interface MedicationCardProps {
    */
   status?: 'pending' | 'approved' | 'denied' | 'discontinued' | 'active' | 'shipped' | 'delivered'
   /**
+   * Optional order date for Orders variant
+   */
+  orderDate?: string
+  /**
+   * Optional approval ID for Orders variant  
+   */
+  approvalId?: string
+  /**
+   * Optional order number for Preferred variant
+   */
+  orderNumber?: string
+  /**
    * Optional additional CSS classes
    */
   className?: string
@@ -36,6 +48,9 @@ export function MedicationCard({
   dosage,
   supply,
   status,
+  orderDate,
+  approvalId,
+  orderNumber,
   className,
   onClick
 }: MedicationCardProps) {
@@ -85,6 +100,25 @@ export function MedicationCard({
             <Separator orientation="vertical" className="mx-2 h-4" />
             <span>{supply}</span>
           </div>
+          {(orderDate || approvalId || orderNumber) && (
+            <div className="flex items-center text-xs text-muted-foreground pt-1">
+              {orderNumber && (
+                <>
+                  <span>{orderNumber}</span>
+                  {(approvalId || orderDate) && <Separator orientation="vertical" className="mx-2 h-3" />}
+                </>
+              )}
+              {approvalId && (
+                <>
+                  <span>Approval: {approvalId.slice(0, 8)}...</span>
+                  {orderDate && <Separator orientation="vertical" className="mx-2 h-3" />}
+                </>
+              )}
+              {orderDate && (
+                <span>Ordered: {orderDate}</span>
+              )}
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

@@ -456,10 +456,21 @@ export class AuthService {
       
       console.log('🔄 Record count for patient:', count)
       
-      // Now try the actual query
+      // Now try the actual query with medication name join
       const { data, error } = await supabase
         .from('patient_medication_preferences')
-        .select('*')
+        .select(`
+          id,
+          medication_id,
+          preferred_dosage,
+          frequency,
+          notes,
+          status,
+          requested_date,
+          created_at,
+          updated_at,
+          medications(name)
+        `)
         .eq('patient_id', patientId)
         .order('requested_date', { ascending: false })
       
@@ -473,13 +484,12 @@ export class AuthService {
       // Transform the data to match the PatientMedicationPreference interface
       const transformedPreferences = (data || []).map((pref: any) => ({
         id: pref.id,
-        medicationName: `Medication ${pref.medication_id}`, // Temporary until we fix the join
-        dosage: pref.preferred_dosage || 'Not specified',
+        medication_name: pref.medications?.name || 'Unknown Medication',
+        preferred_dosage: pref.preferred_dosage || 'Not specified',
         frequency: pref.frequency || 'As needed',
         status: pref.status,
-        requestedDate: pref.requested_date,
-        approvedDate: null, // Temporary until we fix the join
-        providerNotes: pref.notes || null
+        requested_date: pref.requested_date,
+        notes: pref.notes || null
       }))
 
       console.log('✅ Retrieved patient medication preferences:', transformedPreferences)
@@ -628,6 +638,186 @@ export class AuthService {
       return { success: true, data, error: null }
     } catch (error) {
       console.error('❌ Exception updating medication preference:', error)
+      return { success: false, error }
+    }
+  }
+
+  /**
+   * Get patient medication orders for admin view
+   */
+  async getPatientMedicationOrders(patientId: string) {
+    try {
+      console.log('🔍 Getting medication orders for patient:', patientId)
+      
+      const { data, error } = await supabase
+        .from('medication_orders')
+        .select(`
+          id,
+          approval_id,
+          quantity,
+          unit_price,
+          total_amount,
+          payment_status,
+          fulfillment_status,
+          created_at,
+          shipped_date,
+          tracking_number,
+          medication_approvals!inner(
+            preference_id,
+            approved_dosage,
+            patient_medication_preferences!inner(
+              medication_id,
+              medications(name)
+            )
+          )
+        `)
+        .eq('patient_id', patientId)
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('❌ Error fetching medication orders:', error)
+        return { data: [], error }
+      }
+
+      // Transform the data for the UI
+      const transformedOrders = data?.map(order => ({
+        id: order.id,
+        approval_id: order.approval_id,
+        preference_id: order.medication_approvals?.preference_id || null,
+        medication_name: order.medication_approvals?.patient_medication_preferences?.medications?.name || 'Unknown',
+        quantity: order.quantity,
+        dosage: order.medication_approvals?.approved_dosage || 'Unknown',
+        total_amount: order.total_amount,
+        payment_status: order.payment_status,
+        fulfillment_status: order.fulfillment_status,
+        created_at: order.created_at,
+        shipped_date: order.shipped_date,
+        tracking_number: order.tracking_number
+      })) || []
+
+      console.log('✅ Fetched medication orders:', transformedOrders)
+      return { data: transformedOrders, error: null }
+
+    } catch (error) {
+      console.error('❌ Exception fetching medication orders:', error)
+      return { data: [], error }
+    }
+  }
+
+  /**
+   * Get medication orders for a specific preference ID
+   */
+  async getOrdersByPreferenceId(preferenceId: string) {
+    try {
+      console.log('🔍 AUTH: Getting orders for preference:', preferenceId)
+      console.log('🔍 AUTH: Expected to find approval 3e34c9f4-9b47-48bd-b0b5-58e243ca0661 and order b99eda3a-2e7e-45d0-b33c-f772d41198b5')
+      
+      console.log('🔍 AUTH: About to execute Supabase query...')
+      const { data, error } = await supabase
+        .from('medication_orders')
+        .select(`
+          id,
+          approval_id,
+          quantity,
+          unit_price,
+          total_amount,
+          payment_status,
+          fulfillment_status,
+          created_at,
+          shipped_date,
+          tracking_number,
+          medication_approvals!inner(
+            preference_id,
+            approved_dosage,
+            patient_medication_preferences!inner(
+              medication_id,
+              medications(name)
+            )
+          )
+        `)
+        .eq('medication_approvals.preference_id', preferenceId)
+        .order('created_at', { ascending: false })
+
+      console.log('🔍 AUTH: Raw query result:', { data, error })
+      console.log('🔍 AUTH: Query found', data?.length || 0, 'orders')
+      if (data && data.length > 0) {
+        console.log('🔍 AUTH: First order details:', data[0])
+      }
+
+      if (error) {
+        console.error('❌ AUTH: Error fetching orders for preference:', error)
+        return { data: [], error }
+      }
+
+      // Transform the data for the UI
+      const transformedOrders = data?.map(order => ({
+        id: order.id,
+        approval_id: order.approval_id,
+        preference_id: preferenceId,
+        medication_name: order.medication_approvals?.patient_medication_preferences?.medications?.name || 'Unknown',
+        quantity: order.quantity,
+        dosage: order.medication_approvals?.approved_dosage || 'Unknown',
+        total_amount: order.total_amount,
+        payment_status: order.payment_status,
+        fulfillment_status: order.fulfillment_status,
+        created_at: order.created_at,
+        shipped_date: order.shipped_date,
+        tracking_number: order.tracking_number
+      })) || []
+
+      console.log('✅ Fetched orders for preference:', transformedOrders)
+      return { data: transformedOrders, error: null }
+      
+    } catch (error) {
+      console.error('❌ AUTH EXCEPTION: fetching orders for preference:', error)
+      console.error('❌ AUTH EXCEPTION: error details:', JSON.stringify(error, null, 2))
+      return { data: [], error }
+    }
+  }
+
+  /**
+   * Update medication order fields (admin only)
+   */
+  async updateMedicationOrderAdmin(orderId: string, updates: {
+    payment_status?: string
+    payment_method?: string
+    payment_date?: string
+    fulfillment_status?: string
+    tracking_number?: string
+    shipped_date?: string
+    estimated_delivery?: string
+    admin_notes?: string
+  }) {
+    try {
+      console.log('🔍 Updating medication order (admin):', orderId, updates)
+      
+      const updateData: any = {}
+      if (updates.payment_status) updateData.payment_status = updates.payment_status
+      if (updates.payment_method) updateData.payment_method = updates.payment_method
+      if (updates.payment_date) updateData.payment_date = updates.payment_date
+      if (updates.fulfillment_status) updateData.fulfillment_status = updates.fulfillment_status
+      if (updates.tracking_number) updateData.tracking_number = updates.tracking_number
+      if (updates.shipped_date) updateData.shipped_date = updates.shipped_date
+      if (updates.estimated_delivery) updateData.estimated_delivery = updates.estimated_delivery
+      if (updates.admin_notes) updateData.admin_notes = updates.admin_notes
+
+      console.log('🔄 Prepared update data:', updateData)
+
+      const { data, error } = await supabase
+        .from('medication_orders')
+        .update(updateData)
+        .eq('id', orderId)
+        .select()
+
+      if (error) {
+        console.error('❌ Error updating medication order:', error)
+        return { success: false, error }
+      }
+
+      console.log('✅ Updated medication order:', data)
+      return { success: true, data, error: null }
+    } catch (error) {
+      console.error('❌ Exception updating medication order:', error)
       return { success: false, error }
     }
   }

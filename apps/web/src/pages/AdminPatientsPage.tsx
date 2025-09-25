@@ -28,6 +28,8 @@ export function AdminPatientsPage() {
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [patientMedications, setPatientMedications] = useState<PatientMedication[]>([])
+  const [patientPreferences, setPatientPreferences] = useState<any[]>([])
+  const [patientOrders, setPatientOrders] = useState<any[]>([])
 
   useEffect(() => {
     // Redirect if not admin
@@ -105,6 +107,40 @@ export function AdminPatientsPage() {
     }
   }
 
+  // Fetch patient medication preferences from database
+  const fetchPatientPreferences = async (patientId: string) => {
+    try {
+      const { data, error } = await authService.getPatientMedicationPreferences(patientId)
+      
+      if (error) {
+        console.error('Error fetching medication preferences:', error)
+        return []
+      }
+
+      return data
+    } catch (error) {
+      console.error('Exception fetching medication preferences:', error)
+      return []
+    }
+  }
+
+  // Fetch patient medication orders from database
+  const fetchPatientOrders = async (patientId: string) => {
+    try {
+      const { data, error } = await authService.getPatientMedicationOrders(patientId)
+      
+      if (error) {
+        console.error('Error fetching medication orders:', error)
+        return []
+      }
+
+      return data
+    } catch (error) {
+      console.error('Exception fetching medication orders:', error)
+      return []
+    }
+  }
+
   // Convert patient medications array to PatientMedication objects (fallback)
   const convertToPatientMedications = (medications?: string[]): PatientMedication[] => {
     if (!medications || medications.length === 0) return []
@@ -141,6 +177,25 @@ export function AdminPatientsPage() {
       console.error('Error loading medications, using fallback:', error)
       const medications = convertToPatientMedications(patient.medications)
       setPatientMedications(medications)
+    }
+
+    // Fetch medication preferences and orders
+    try {
+      const preferences = await fetchPatientPreferences(patient.id)
+      setPatientPreferences(preferences)
+      console.log('Loaded patient preferences:', preferences)
+    } catch (error) {
+      console.error('Error loading medication preferences:', error)
+      setPatientPreferences([])
+    }
+
+    try {
+      const orders = await fetchPatientOrders(patient.id)
+      setPatientOrders(orders)
+      console.log('Loaded patient orders:', orders)
+    } catch (error) {
+      console.error('Error loading medication orders:', error)
+      setPatientOrders([])
     }
   }
 
@@ -278,11 +333,13 @@ export function AdminPatientsPage() {
       <EnhancedPatientInformationDialog
         patient={selectedPatient}
         medications={patientMedications}
+        preferredMedications={patientPreferences}
+        medicationOrders={patientOrders}
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         isAdmin={true}
         onMedicationUpdate={handleMedicationUpdate}
-        initialSection="Medications"
+        initialSection="Information"
       />
     </SidebarProvider>
   )

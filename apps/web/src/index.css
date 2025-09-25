@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    --background: oklch(100% 0 0);
+    --background: oklch(98% 0 0);
     --foreground: oklch(14.5% 0 0);
     --card: oklch(100% 0 0);
     --card-foreground: oklch(14.5% 0 0);
@@ -29,11 +29,11 @@
     --chart-3: oklch(0.8 0.16 155);
     --chart-4: oklch(0.63 0.22 28);
     --chart-5: oklch(0.55 0.18 298);
-    --sidebar: oklch(96% 0 0);
+    --sidebar: oklch(98% 0 0);
     --sidebar-foreground: oklch(14.5% 0 0);
     --sidebar-primary: oklch(20.5% 0 0);
     --sidebar-primary-foreground: oklch(98.5% 0 0);
-    --sidebar-accent: oklch(97% 0 0);
+    --sidebar-accent: oklch(95.5% 0 0);
     --sidebar-accent-foreground: oklch(20.5% 0 0);
     --sidebar-border: oklch(92.2% 0 0);
     --sidebar-ring: oklch(70.8% 0 0);
@@ -98,5 +98,16 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Sidebar hover effects */
+@layer components {
+  .sidebar [data-sidebar="menu-button"]:hover {
+    background-color: #f5f5f5 !important;
+  }
+  
+  .dark .sidebar [data-sidebar="menu-button"]:hover {
+    background-color: oklch(20% 0 0) !important;
   }
 }
