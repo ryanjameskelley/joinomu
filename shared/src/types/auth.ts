@@ -11,6 +11,7 @@ export interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any }>
   signOut: () => Promise<{ error: any }>
   userRole: UserRole | null
+  isSigningOut: boolean
 }
 
 export interface SignInCredentials {

@@ -125,8 +125,16 @@ export function AdminDashboard() {
   }
 
   const handleSignOut = async () => {
-    await authService.signOut()
-    navigate('/')
+    try {
+      console.log('🔄 Admin dashboard: Starting sign out...')
+      await authService.signOut()
+      console.log('✅ Admin dashboard: Sign out successful, navigating to home')
+      navigate('/')
+    } catch (error) {
+      console.error('❌ Admin dashboard: Error signing out:', error)
+      // Force navigation even if sign out fails
+      navigate('/')
+    }
   }
 
   const handleNavigate = (item: string) => {

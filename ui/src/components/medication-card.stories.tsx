@@ -42,128 +42,38 @@ export const Default: Story = {
   }
 }
 
-// Weight loss medications
-export const WeightLoss: Story = {
+// Preferred medications - includes status tag and order number
+export const Preferred: Story = {
   args: {
-    medicationName: 'Ozempic',
-    dosage: '0.5mg',
-    supply: '28 day supply'
-  }
-}
-
-export const Tirzepatide: Story = {
-  args: {
-    medicationName: 'Tirzepatide',
-    dosage: '5mg',
-    supply: '30 day supply'
-  }
-}
-
-export const Liraglutide: Story = {
-  args: {
-    medicationName: 'Liraglutide',
-    dosage: '3mg',
-    supply: '30 day supply'
-  }
-}
-
-// Men's health medications
-export const TestosteroneGel: Story = {
-  args: {
-    medicationName: 'Testosterone Gel',
-    dosage: '50mg',
-    supply: '30 day supply'
-  }
-}
-
-export const TestosteroneCypionate: Story = {
-  args: {
-    medicationName: 'Testosterone Cypionate',
-    dosage: '200mg/ml',
-    supply: '10ml vial'
-  }
-}
-
-export const Sildenafil: Story = {
-  args: {
-    medicationName: 'Sildenafil',
-    dosage: '50mg',
-    supply: '30 tablets'
-  }
-}
-
-export const Tadalafil: Story = {
-  args: {
-    medicationName: 'Tadalafil',
-    dosage: '20mg',
-    supply: '30 tablets'
-  }
-}
-
-export const Finasteride: Story = {
-  args: {
-    medicationName: 'Finasteride',
+    medicationName: 'Semaglutide',
     dosage: '1mg',
-    supply: '90 tablets'
-  }
-}
-
-// Interactive example
-export const Clickable: Story = {
-  args: {
-    medicationName: 'Phentermine',
-    dosage: '37.5mg',
-    supply: '30 capsules'
+    supply: '30 day supply',
+    status: 'approved',
+    orderNumber: 'ORD001'
   },
   parameters: {
     docs: {
       description: {
-        story: 'Example of a clickable medication card with hover effects'
+        story: 'Medication card for preferred medications with status badge and order number. Used in patient medication preferences.'
       }
     }
   }
 }
 
-// Multiple cards in a grid layout
-export const MultipleCards: Story = {
-  render: () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl">
-      <MedicationCard 
-        medicationName="Semaglutide" 
-        dosage="1mg" 
-        supply="30 day supply" 
-      />
-      <MedicationCard 
-        medicationName="Testosterone Gel" 
-        dosage="50mg" 
-        supply="30 day supply" 
-      />
-      <MedicationCard 
-        medicationName="Sildenafil" 
-        dosage="50mg" 
-        supply="30 tablets" 
-      />
-      <MedicationCard 
-        medicationName="Tirzepatide" 
-        dosage="5mg" 
-        supply="30 day supply" 
-      />
-      <MedicationCard 
-        medicationName="Finasteride" 
-        dosage="1mg" 
-        supply="90 tablets" 
-      />
-      <MedicationCard 
-        medicationName="Liraglutide" 
-        dosage="3mg" 
-        supply="30 day supply" 
-      />
-    </div>
-  ),
+// Orders - includes status, date and approval info
+export const Orders: Story = {
+  args: {
+    medicationName: 'Semaglutide',
+    dosage: '1mg',
+    supply: '30 day supply',
+    status: 'delivered',
+    orderDate: '2024-01-15',
+    approvalId: 'b89c1bf3-17a7-4807-8532-894825150e41'
+  },
   parameters: {
     docs: {
       description: {
-        story: 'Example showing multiple medication cards in a responsive grid layout'
+        story: 'Medication card for orders with delivery status, order date, and approval ID. Used in patient medication orders.'
       }
     }
   }

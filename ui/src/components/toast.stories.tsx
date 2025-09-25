@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { Button } from './button'
-import { MedicationToast, showToast } from './toast'
+import { Sonner, showToast } from './toast'
 import { Toaster } from 'sonner'
 
 const meta = {
-  title: 'Molecules/Toast',
+  title: 'Atomic/Molecules/Sonner',
   component: Button,
   parameters: {
     layout: 'centered',
@@ -118,7 +118,7 @@ export const MedicationSaved: Story = {
   render: (args) => (
     <Button
       {...args}
-      onClick={() => MedicationToast.saved('Semaglutide')}
+      onClick={() => Sonner.saved('Semaglutide')}
     />
   ),
 }
@@ -131,7 +131,7 @@ export const MedicationError: Story = {
   render: (args) => (
     <Button
       {...args}
-      onClick={() => MedicationToast.error('Semaglutide', 'Database connection failed')}
+      onClick={() => Sonner.error('Semaglutide', 'Database connection failed')}
     />
   ),
 }
@@ -144,7 +144,20 @@ export const MedicationSaving: Story = {
   render: (args) => (
     <Button
       {...args}
-      onClick={() => MedicationToast.saving('Semaglutide')}
+      onClick={() => Sonner.saving('Semaglutide')}
+    />
+  ),
+}
+
+export const CopiedReference: Story = {
+  args: {
+    children: 'Copy Reference',
+    variant: 'secondary',
+  },
+  render: (args) => (
+    <Button
+      {...args}
+      onClick={() => Sonner.copied('REF-B99EDA3A')}
     />
   ),
 }

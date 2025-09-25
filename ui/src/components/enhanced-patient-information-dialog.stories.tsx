@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { EnhancedPatientInformationDialog } from './enhanced-patient-information-dialog'
 import { MedicationPreferencesDialog, type MedicationOption } from './medication-preferences-dialog'
-import type { PatientMedication } from './enhanced-patient-information-dialog'
+import type { PatientMedication, PatientMedicationPreference, PatientMedicationOrder } from './enhanced-patient-information-dialog'
 import type { Patient } from './patient-table'
 
 const meta = {
@@ -143,6 +143,95 @@ const mensHealthMedications: PatientMedication[] = [
   }
 ]
 
+// Sample preferred medications data
+const samplePreferredMedications: PatientMedicationPreference[] = [
+  {
+    id: '356b8ae1-bf50-4bf2-80cc-05a0846da760',
+    medication_name: 'Semaglutide',
+    preferred_dosage: '0.5mg',
+    frequency: 'weekly',
+    status: 'approved',
+    requested_date: '2025-09-20T10:00:00Z',
+    notes: 'Starting dose for weight management'
+  },
+  {
+    id: '456c9bf2-cf51-5cf3-91dd-16b1957ea871',
+    medication_name: 'Tirzepatide',
+    preferred_dosage: '2.5mg',
+    frequency: 'weekly',
+    status: 'pending',
+    requested_date: '2025-09-22T14:30:00Z',
+    notes: 'Alternative GLP-1 option'
+  },
+  {
+    id: '567d0cf3-df62-6df4-a2ee-27c2a68fb982',
+    medication_name: 'Liraglutide',
+    preferred_dosage: '1.8mg',
+    frequency: 'daily',
+    status: 'denied',
+    requested_date: '2025-09-18T09:15:00Z',
+    notes: 'Daily administration not preferred'
+  }
+]
+
+// Sample medication orders data
+const sampleMedicationOrders: PatientMedicationOrder[] = [
+  {
+    id: 'b89c1bf3-17a7-4807-8532-894825150e41',
+    approval_id: '9b71930b-f0be-4e7d-8c80-221d11de24c0',
+    medication_name: 'Semaglutide',
+    quantity: 1,
+    dosage: '0.5mg',
+    total_amount: 1199.99,
+    payment_status: 'completed',
+    fulfillment_status: 'delivered',
+    created_at: '2025-09-21T08:00:00Z',
+    shipped_date: '2025-09-22T15:30:00Z',
+    tracking_number: 'TRK1234567890'
+  },
+  {
+    id: 'c9ad2cf4-28b8-5918-9643-995936261f52',
+    approval_id: 'ab82041c-g1cf-5e8e-9d91-332e22ef35d1',
+    medication_name: 'Tirzepatide',
+    quantity: 1,
+    dosage: '2.5mg',
+    total_amount: 1399.99,
+    payment_status: 'pending',
+    fulfillment_status: 'processing',
+    created_at: '2025-09-23T12:00:00Z'
+  },
+  {
+    id: 'daae3df5-39c9-6a29-a754-aa6a47372g63',
+    approval_id: 'bc93152d-h2df-6f9f-ae92-443f33fg46e2',
+    medication_name: 'Testosterone Cypionate',
+    quantity: 1,
+    dosage: '200mg/ml',
+    total_amount: 899.99,
+    payment_status: 'completed',
+    fulfillment_status: 'shipped',
+    created_at: '2025-09-20T16:45:00Z',
+    shipped_date: '2025-09-21T11:20:00Z',
+    tracking_number: 'TRK0987654321'
+  }
+]
+
+// Information story - renamed from default
+export const Information: Story = {
+  args: {
+    patient: samplePatient,
+    open: true,
+    isAdmin: true,
+    initialSection: "Information"
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Admin patient information view showing basic information, treatment details, and admin actions.'
+      }
+    }
+  }
+}
+
 // Medications story - Admin view with medications
 export const Medications: Story = {
   args: {
@@ -156,6 +245,42 @@ export const Medications: Story = {
     docs: {
       description: {
         story: 'Admin medication management interface showing vertically scrolling list of patient medications. Click on any medication card to view detailed payment and shipping information.'
+      }
+    }
+  }
+}
+
+// Preferred Medications story - Admin view with preferred medications
+export const PreferredMedications: Story = {
+  args: {
+    patient: samplePatient,
+    preferredMedications: samplePreferredMedications,
+    open: true,
+    isAdmin: true,
+    initialSection: "Preferred Medications"
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Admin view of patient medication preferences from onboarding process. Shows status badges and preference reference numbers.'
+      }
+    }
+  }
+}
+
+// Orders story - Admin view with medication orders
+export const Orders: Story = {
+  args: {
+    patient: samplePatient,
+    medicationOrders: sampleMedicationOrders,
+    open: true,
+    isAdmin: true,
+    initialSection: "Orders"
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Admin view of patient medication orders. Shows order dates, approval IDs, and fulfillment status.'
       }
     }
   }

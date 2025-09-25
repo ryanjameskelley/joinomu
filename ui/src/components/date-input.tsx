@@ -33,6 +33,7 @@ export interface DateInputProps {
   helpText?: string
   onChange?: (value: string, date: Date | undefined) => void
   id?: string
+  className?: string
 }
 
 export function DateInput({
@@ -41,7 +42,8 @@ export function DateInput({
   placeholder = "Tomorrow or next week",
   helpText,
   onChange,
-  id = "date-input"
+  id = "date-input",
+  className
 }: DateInputProps) {
   const [open, setOpen] = React.useState(false)
   const [value, setValue] = React.useState(initialValue)
@@ -69,16 +71,18 @@ export function DateInput({
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <Label htmlFor={id} className="px-1">
-        {label}
-      </Label>
+    <div className={`flex flex-col gap-3 ${className || ''}`}>
+      {label && (
+        <Label htmlFor={id} className="px-1">
+          {label}
+        </Label>
+      )}
       <div className="relative flex gap-2">
         <Input
           id={id}
           value={value}
           placeholder={placeholder}
-          className="bg-background pr-10"
+          className="bg-background pr-10 w-full"
           onChange={(e) => handleValueChange(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "ArrowDown") {
