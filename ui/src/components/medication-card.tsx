@@ -20,7 +20,7 @@ export interface MedicationCardProps {
   /**
    * Optional status for the medication
    */
-  status?: 'pending' | 'approved' | 'denied' | 'discontinued' | 'active' | 'shipped' | 'delivered'
+  status?: 'pending' | 'approved' | 'denied' | 'discontinued' | 'active' | 'shipped' | 'delivered' | 'scheduled'
   /**
    * Optional order date for Orders variant
    */
@@ -33,6 +33,14 @@ export interface MedicationCardProps {
    * Optional order number for Preferred variant
    */
   orderNumber?: string
+  /**
+   * Optional edit handler - shows edit link when provided
+   */
+  onEdit?: () => void
+  /**
+   * Optional title click handler - makes title a clickable link when provided
+   */
+  onTitleClick?: () => void
   /**
    * Optional additional CSS classes
    */
@@ -51,6 +59,8 @@ export function MedicationCard({
   orderDate,
   approvalId,
   orderNumber,
+  onEdit,
+  onTitleClick,
   className,
   onClick
 }: MedicationCardProps) {
@@ -59,6 +69,7 @@ export function MedicationCard({
       case 'approved':
       case 'active':
       case 'delivered':
+      case 'scheduled':
         return 'default' as const
       case 'pending':
       case 'shipped':
@@ -74,7 +85,8 @@ export function MedicationCard({
   return (
     <Card 
       className={cn(
-        "w-full max-w-sm transition-all duration-200 hover:shadow-md", 
+        "w-full transition-all duration-200 hover:shadow-md", 
+        !className?.includes('w-full') && "max-w-sm",
         onClick && "cursor-pointer hover:scale-[1.02]",
         className
       )}
@@ -83,17 +95,42 @@ export function MedicationCard({
       <CardContent className="p-4">
         <div className="space-y-1">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="text-base font-semibold leading-none tracking-tight text-foreground">
-              {medicationName}
-            </h3>
-            {status && (
-              <Badge 
-                variant={getStatusBadgeVariant(status)}
-                className="capitalize text-xs"
+            {onTitleClick ? (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onTitleClick()
+                }}
+                className="text-base font-semibold leading-none tracking-tight text-foreground hover:underline text-left"
               >
-                {status}
-              </Badge>
+                {medicationName}
+              </button>
+            ) : (
+              <h3 className="text-base font-semibold leading-none tracking-tight text-foreground">
+                {medicationName}
+              </h3>
             )}
+            <div className="flex items-center gap-2">
+              {onEdit && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onEdit()
+                  }}
+                  className="text-blue-600 hover:text-blue-800 text-xs font-medium"
+                >
+                  Edit
+                </button>
+              )}
+              {status && (
+                <Badge 
+                  variant={getStatusBadgeVariant(status)}
+                  className="capitalize text-xs"
+                >
+                  {status}
+                </Badge>
+              )}
+            </div>
           </div>
           <div className="flex items-center text-sm text-muted-foreground">
             <span>{dosage}</span>

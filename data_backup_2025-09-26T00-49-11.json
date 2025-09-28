@@ -1,0 +1,946 @@
+{
+  "timestamp": "2025-09-26T00-49-11",
+  "description": "Backup of current test data including appointments, overrides, and assignments",
+  "profiles": [
+    {
+      "id": "11111111-1111-1111-1111-111111111111",
+      "email": "sarah.j@test.com",
+      "first_name": "Sarah",
+      "last_name": "Johnson",
+      "role": "patient",
+      "created_at": "2025-09-25T21:40:03.389565+00:00",
+      "updated_at": "2025-09-25T21:40:03.389565+00:00"
+    },
+    {
+      "id": "22222222-2222-2222-2222-222222222222",
+      "email": "michael.r@test.com",
+      "first_name": "Michael",
+      "last_name": "Roberts",
+      "role": "patient",
+      "created_at": "2025-09-25T21:40:03.389565+00:00",
+      "updated_at": "2025-09-25T21:40:03.389565+00:00"
+    },
+    {
+      "id": "33333333-3333-3333-3333-333333333333",
+      "email": "jennifer.m@test.com",
+      "first_name": "Jennifer",
+      "last_name": "Martinez",
+      "role": "patient",
+      "created_at": "2025-09-25T21:40:03.389565+00:00",
+      "updated_at": "2025-09-25T21:40:03.389565+00:00"
+    },
+    {
+      "id": "44444444-4444-4444-4444-444444444444",
+      "email": "david.a@test.com",
+      "first_name": "David",
+      "last_name": "Anderson",
+      "role": "patient",
+      "created_at": "2025-09-25T21:40:03.389565+00:00",
+      "updated_at": "2025-09-25T21:40:03.389565+00:00"
+    },
+    {
+      "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+      "email": "admin@test.com",
+      "first_name": "Admin",
+      "last_name": "User",
+      "role": "admin",
+      "created_at": "2025-09-25T21:40:03.389565+00:00",
+      "updated_at": "2025-09-25T21:40:03.389565+00:00"
+    },
+    {
+      "id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+      "email": "dr.watson@test.com",
+      "first_name": "Dr. Emily",
+      "last_name": "Watson",
+      "role": "provider",
+      "created_at": "2025-09-25T21:40:03.389565+00:00",
+      "updated_at": "2025-09-25T21:40:03.389565+00:00"
+    },
+    {
+      "id": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+      "email": "dr.wilson@test.com",
+      "first_name": "Dr. James",
+      "last_name": "Wilson",
+      "role": "provider",
+      "created_at": "2025-09-25T21:40:03.389565+00:00",
+      "updated_at": "2025-09-25T21:40:03.389565+00:00"
+    },
+    {
+      "id": "55bb52a5-32da-4d8a-9a82-8d568a0eb33d",
+      "email": "patient@test.com",
+      "first_name": "Test",
+      "last_name": "Patient",
+      "role": "patient",
+      "created_at": "2025-09-25T21:46:29.955935+00:00",
+      "updated_at": "2025-09-25T21:46:29.955935+00:00"
+    },
+    {
+      "id": "fe5fee47-896d-4ac7-ba2b-d35ef4589eee",
+      "email": "testpatient@example.com",
+      "first_name": "Test",
+      "last_name": "Patient",
+      "role": "patient",
+      "created_at": "2025-09-25T22:10:56.334155+00:00",
+      "updated_at": "2025-09-25T22:10:56.346848+00:00"
+    }
+  ],
+  "patients": [
+    {
+      "id": "d10382e9-d30e-4a1c-8c17-16cd6da6a9de",
+      "profile_id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+      "date_of_birth": null,
+      "phone": null,
+      "has_completed_intake": false,
+      "created_at": "2025-09-25T21:40:03.389565+00:00",
+      "updated_at": "2025-09-25T21:40:03.389565+00:00"
+    },
+    {
+      "id": "850b10f3-8a30-435f-a8e8-d94080f796d8",
+      "profile_id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+      "date_of_birth": null,
+      "phone": null,
+      "has_completed_intake": false,
+      "created_at": "2025-09-25T21:40:03.389565+00:00",
+      "updated_at": "2025-09-25T21:40:03.389565+00:00"
+    },
+    {
+      "id": "5bc617fa-461c-41e8-b6af-6647078736dc",
+      "profile_id": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+      "date_of_birth": null,
+      "phone": null,
+      "has_completed_intake": false,
+      "created_at": "2025-09-25T21:40:03.389565+00:00",
+      "updated_at": "2025-09-25T21:40:03.389565+00:00"
+    },
+    {
+      "id": "a0e04389-5ad4-4d1d-8454-46ec1897b37a",
+      "profile_id": "11111111-1111-1111-1111-111111111111",
+      "date_of_birth": null,
+      "phone": "555-0101",
+      "has_completed_intake": true,
+      "created_at": "2025-09-25T21:40:03.389565+00:00",
+      "updated_at": "2025-09-25T21:40:03.389565+00:00"
+    },
+    {
+      "id": "e9bbaaa6-9ba0-44c3-9a1f-a3988cdd1f9e",
+      "profile_id": "22222222-2222-2222-2222-222222222222",
+      "date_of_birth": null,
+      "phone": "555-0102",
+      "has_completed_intake": true,
+      "created_at": "2025-09-25T21:40:03.389565+00:00",
+      "updated_at": "2025-09-25T21:40:03.389565+00:00"
+    },
+    {
+      "id": "f2cd7e9b-eba9-42c3-ae1f-e842c1937408",
+      "profile_id": "33333333-3333-3333-3333-333333333333",
+      "date_of_birth": null,
+      "phone": "555-0103",
+      "has_completed_intake": true,
+      "created_at": "2025-09-25T21:40:03.389565+00:00",
+      "updated_at": "2025-09-25T21:40:03.389565+00:00"
+    },
+    {
+      "id": "a1cf5b13-f706-44c4-a4cf-dc154fb5ff3c",
+      "profile_id": "44444444-4444-4444-4444-444444444444",
+      "date_of_birth": null,
+      "phone": "555-0104",
+      "has_completed_intake": true,
+      "created_at": "2025-09-25T21:40:03.389565+00:00",
+      "updated_at": "2025-09-25T21:40:03.389565+00:00"
+    },
+    {
+      "id": "ea249c2a-0f3c-4744-8e16-6bfcf9de8af0",
+      "profile_id": "55bb52a5-32da-4d8a-9a82-8d568a0eb33d",
+      "date_of_birth": null,
+      "phone": null,
+      "has_completed_intake": false,
+      "created_at": "2025-09-25T21:46:29.955935+00:00",
+      "updated_at": "2025-09-25T21:46:29.955935+00:00"
+    },
+    {
+      "id": "62442a9d-6ad3-46f9-ad5e-2c86d8584f84",
+      "profile_id": "fe5fee47-896d-4ac7-ba2b-d35ef4589eee",
+      "date_of_birth": null,
+      "phone": null,
+      "has_completed_intake": false,
+      "created_at": "2025-09-25T22:10:56.334155+00:00",
+      "updated_at": "2025-09-25T22:10:56.334155+00:00"
+    }
+  ],
+  "providers": [
+    {
+      "id": "a44b32bb-00a5-460d-a18b-4468d59d0318",
+      "profile_id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+      "specialty": "Weight Loss",
+      "license_number": "TEST123",
+      "phone": null,
+      "active": true,
+      "created_at": "2025-09-25T22:02:22.823657+00:00",
+      "updated_at": "2025-09-25T22:02:22.823657+00:00"
+    },
+    {
+      "id": "ab5fc20f-f802-4735-b086-daacbae7dd7b",
+      "profile_id": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+      "specialty": "Mens Health",
+      "license_number": "TEST123",
+      "phone": null,
+      "active": true,
+      "created_at": "2025-09-25T22:02:22.8305+00:00",
+      "updated_at": "2025-09-25T22:02:22.8305+00:00"
+    }
+  ],
+  "admins": [],
+  "patient_assignments": [
+    {
+      "id": "27f6c7c3-e540-4aaa-ab99-c13c7258b4d1",
+      "patient_id": "a0e04389-5ad4-4d1d-8454-46ec1897b37a",
+      "provider_id": "a44b32bb-00a5-460d-a18b-4468d59d0318",
+      "treatment_type": "weight_loss",
+      "is_primary": true,
+      "assigned_date": "2025-09-25T22:05:53.827+00:00",
+      "active": true,
+      "created_at": "2025-09-25T22:05:53.827359+00:00",
+      "updated_at": "2025-09-25T22:05:53.827359+00:00"
+    },
+    {
+      "id": "e71416ae-5870-409b-9d6f-54195dde784f",
+      "patient_id": "a0e04389-5ad4-4d1d-8454-46ec1897b37a",
+      "provider_id": "ab5fc20f-f802-4735-b086-daacbae7dd7b",
+      "treatment_type": "mens_health",
+      "is_primary": false,
+      "assigned_date": "2025-09-25T22:05:53.829+00:00",
+      "active": true,
+      "created_at": "2025-09-25T22:05:53.82917+00:00",
+      "updated_at": "2025-09-25T22:05:53.82917+00:00"
+    },
+    {
+      "id": "d85f0071-4045-4920-8184-e7f6ae7d027b",
+      "patient_id": "62442a9d-6ad3-46f9-ad5e-2c86d8584f84",
+      "provider_id": "a44b32bb-00a5-460d-a18b-4468d59d0318",
+      "treatment_type": "weight_loss",
+      "is_primary": true,
+      "assigned_date": "2025-09-25T22:11:29.2+00:00",
+      "active": true,
+      "created_at": "2025-09-25T22:11:29.201832+00:00",
+      "updated_at": "2025-09-25T22:11:29.201832+00:00"
+    },
+    {
+      "id": "2e8dc51f-8fad-4231-a26e-4f6ce098df8a",
+      "patient_id": "62442a9d-6ad3-46f9-ad5e-2c86d8584f84",
+      "provider_id": "ab5fc20f-f802-4735-b086-daacbae7dd7b",
+      "treatment_type": "mens_health",
+      "is_primary": false,
+      "assigned_date": "2025-09-25T22:11:29.204+00:00",
+      "active": true,
+      "created_at": "2025-09-25T22:11:29.204624+00:00",
+      "updated_at": "2025-09-25T22:11:29.204624+00:00"
+    }
+  ],
+  "provider_schedules": [
+    {
+      "id": "da017193-0be5-4d37-bb20-f64152049949",
+      "provider_id": "a44b32bb-00a5-460d-a18b-4468d59d0318",
+      "day_of_week": 1,
+      "start_time": "08:00:00",
+      "end_time": "12:00:00",
+      "slot_duration_minutes": 30,
+      "treatment_types": [
+        "weight_loss"
+      ],
+      "active": true,
+      "created_at": "2025-09-25T22:05:53.77322+00:00",
+      "updated_at": "2025-09-25T22:05:53.77322+00:00"
+    },
+    {
+      "id": "baceae05-e1ba-4c39-b80a-281f2e429bf5",
+      "provider_id": "a44b32bb-00a5-460d-a18b-4468d59d0318",
+      "day_of_week": 1,
+      "start_time": "13:00:00",
+      "end_time": "17:00:00",
+      "slot_duration_minutes": 30,
+      "treatment_types": [
+        "weight_loss"
+      ],
+      "active": true,
+      "created_at": "2025-09-25T22:05:53.783058+00:00",
+      "updated_at": "2025-09-25T22:05:53.783058+00:00"
+    },
+    {
+      "id": "cc53c1e6-0afb-437e-857f-93d278bcf28a",
+      "provider_id": "a44b32bb-00a5-460d-a18b-4468d59d0318",
+      "day_of_week": 1,
+      "start_time": "18:00:00",
+      "end_time": "20:00:00",
+      "slot_duration_minutes": 30,
+      "treatment_types": [
+        "weight_loss"
+      ],
+      "active": true,
+      "created_at": "2025-09-25T22:05:53.785389+00:00",
+      "updated_at": "2025-09-25T22:05:53.785389+00:00"
+    },
+    {
+      "id": "0dc46f05-6a1d-4526-a434-561c2e1a9c53",
+      "provider_id": "a44b32bb-00a5-460d-a18b-4468d59d0318",
+      "day_of_week": 2,
+      "start_time": "08:00:00",
+      "end_time": "12:00:00",
+      "slot_duration_minutes": 30,
+      "treatment_types": [
+        "weight_loss"
+      ],
+      "active": true,
+      "created_at": "2025-09-25T22:05:53.787611+00:00",
+      "updated_at": "2025-09-25T22:05:53.787611+00:00"
+    },
+    {
+      "id": "269abe73-736d-4401-a0bf-cff417782fcf",
+      "provider_id": "a44b32bb-00a5-460d-a18b-4468d59d0318",
+      "day_of_week": 2,
+      "start_time": "13:00:00",
+      "end_time": "17:00:00",
+      "slot_duration_minutes": 30,
+      "treatment_types": [
+        "weight_loss"
+      ],
+      "active": true,
+      "created_at": "2025-09-25T22:05:53.789621+00:00",
+      "updated_at": "2025-09-25T22:05:53.789621+00:00"
+    },
+    {
+      "id": "ca2c5eb1-9095-42cc-8de3-b9b1f5c937bb",
+      "provider_id": "a44b32bb-00a5-460d-a18b-4468d59d0318",
+      "day_of_week": 2,
+      "start_time": "18:00:00",
+      "end_time": "20:00:00",
+      "slot_duration_minutes": 30,
+      "treatment_types": [
+        "weight_loss"
+      ],
+      "active": true,
+      "created_at": "2025-09-25T22:05:53.791208+00:00",
+      "updated_at": "2025-09-25T22:05:53.791208+00:00"
+    },
+    {
+      "id": "322ff61e-46d3-4123-bc5c-76d87983cfa6",
+      "provider_id": "a44b32bb-00a5-460d-a18b-4468d59d0318",
+      "day_of_week": 3,
+      "start_time": "08:00:00",
+      "end_time": "12:00:00",
+      "slot_duration_minutes": 30,
+      "treatment_types": [
+        "weight_loss"
+      ],
+      "active": true,
+      "created_at": "2025-09-25T22:05:53.793441+00:00",
+      "updated_at": "2025-09-25T22:05:53.793441+00:00"
+    },
+    {
+      "id": "dc41a28b-78e5-4ab3-9dc9-d6270b98fea8",
+      "provider_id": "a44b32bb-00a5-460d-a18b-4468d59d0318",
+      "day_of_week": 3,
+      "start_time": "13:00:00",
+      "end_time": "17:00:00",
+      "slot_duration_minutes": 30,
+      "treatment_types": [
+        "weight_loss"
+      ],
+      "active": true,
+      "created_at": "2025-09-25T22:05:53.79524+00:00",
+      "updated_at": "2025-09-25T22:05:53.79524+00:00"
+    },
+    {
+      "id": "00eab239-f1fd-47d0-9d0e-c7be0a24c58d",
+      "provider_id": "a44b32bb-00a5-460d-a18b-4468d59d0318",
+      "day_of_week": 3,
+      "start_time": "18:00:00",
+      "end_time": "20:00:00",
+      "slot_duration_minutes": 30,
+      "treatment_types": [
+        "weight_loss"
+      ],
+      "active": true,
+      "created_at": "2025-09-25T22:05:53.797097+00:00",
+      "updated_at": "2025-09-25T22:05:53.797097+00:00"
+    },
+    {
+      "id": "86af32aa-b74d-4422-b8c8-6df3be4714fc",
+      "provider_id": "a44b32bb-00a5-460d-a18b-4468d59d0318",
+      "day_of_week": 4,
+      "start_time": "08:00:00",
+      "end_time": "12:00:00",
+      "slot_duration_minutes": 30,
+      "treatment_types": [
+        "weight_loss"
+      ],
+      "active": true,
+      "created_at": "2025-09-25T22:05:53.798902+00:00",
+      "updated_at": "2025-09-25T22:05:53.798902+00:00"
+    },
+    {
+      "id": "f3f60cb5-3bcf-4c1d-bbc9-e75625584597",
+      "provider_id": "a44b32bb-00a5-460d-a18b-4468d59d0318",
+      "day_of_week": 4,
+      "start_time": "13:00:00",
+      "end_time": "17:00:00",
+      "slot_duration_minutes": 30,
+      "treatment_types": [
+        "weight_loss"
+      ],
+      "active": true,
+      "created_at": "2025-09-25T22:05:53.80056+00:00",
+      "updated_at": "2025-09-25T22:05:53.80056+00:00"
+    },
+    {
+      "id": "dc3edf3a-4df8-4f4f-8278-deb86516e151",
+      "provider_id": "a44b32bb-00a5-460d-a18b-4468d59d0318",
+      "day_of_week": 4,
+      "start_time": "18:00:00",
+      "end_time": "20:00:00",
+      "slot_duration_minutes": 30,
+      "treatment_types": [
+        "weight_loss"
+      ],
+      "active": true,
+      "created_at": "2025-09-25T22:05:53.801968+00:00",
+      "updated_at": "2025-09-25T22:05:53.801968+00:00"
+    },
+    {
+      "id": "578cff56-9165-4df4-a681-3e333c8e1222",
+      "provider_id": "a44b32bb-00a5-460d-a18b-4468d59d0318",
+      "day_of_week": 5,
+      "start_time": "08:00:00",
+      "end_time": "12:00:00",
+      "slot_duration_minutes": 30,
+      "treatment_types": [
+        "weight_loss"
+      ],
+      "active": true,
+      "created_at": "2025-09-25T22:05:53.803328+00:00",
+      "updated_at": "2025-09-25T22:05:53.803328+00:00"
+    },
+    {
+      "id": "d0b989bb-da8a-4efc-81cb-8930bd9203e0",
+      "provider_id": "a44b32bb-00a5-460d-a18b-4468d59d0318",
+      "day_of_week": 5,
+      "start_time": "13:00:00",
+      "end_time": "17:00:00",
+      "slot_duration_minutes": 30,
+      "treatment_types": [
+        "weight_loss"
+      ],
+      "active": true,
+      "created_at": "2025-09-25T22:05:53.804552+00:00",
+      "updated_at": "2025-09-25T22:05:53.804552+00:00"
+    },
+    {
+      "id": "0c850f97-287e-4267-974c-9c9f9cb7bf18",
+      "provider_id": "a44b32bb-00a5-460d-a18b-4468d59d0318",
+      "day_of_week": 5,
+      "start_time": "18:00:00",
+      "end_time": "20:00:00",
+      "slot_duration_minutes": 30,
+      "treatment_types": [
+        "weight_loss"
+      ],
+      "active": true,
+      "created_at": "2025-09-25T22:05:53.805726+00:00",
+      "updated_at": "2025-09-25T22:05:53.805726+00:00"
+    },
+    {
+      "id": "97a107e6-50fc-421a-86b8-68a4ec943668",
+      "provider_id": "ab5fc20f-f802-4735-b086-daacbae7dd7b",
+      "day_of_week": 1,
+      "start_time": "08:00:00",
+      "end_time": "12:00:00",
+      "slot_duration_minutes": 30,
+      "treatment_types": [
+        "mens_health"
+      ],
+      "active": true,
+      "created_at": "2025-09-25T22:05:53.808133+00:00",
+      "updated_at": "2025-09-25T22:05:53.808133+00:00"
+    },
+    {
+      "id": "e2d1ecc7-a89a-4171-84cb-b889a2d7e098",
+      "provider_id": "ab5fc20f-f802-4735-b086-daacbae7dd7b",
+      "day_of_week": 1,
+      "start_time": "13:00:00",
+      "end_time": "17:00:00",
+      "slot_duration_minutes": 30,
+      "treatment_types": [
+        "mens_health"
+      ],
+      "active": true,
+      "created_at": "2025-09-25T22:05:53.809431+00:00",
+      "updated_at": "2025-09-25T22:05:53.809431+00:00"
+    },
+    {
+      "id": "30b86c6a-8a2f-46d5-882a-e3c8e5bb3e76",
+      "provider_id": "ab5fc20f-f802-4735-b086-daacbae7dd7b",
+      "day_of_week": 1,
+      "start_time": "18:00:00",
+      "end_time": "20:00:00",
+      "slot_duration_minutes": 30,
+      "treatment_types": [
+        "mens_health"
+      ],
+      "active": true,
+      "created_at": "2025-09-25T22:05:53.810726+00:00",
+      "updated_at": "2025-09-25T22:05:53.810726+00:00"
+    },
+    {
+      "id": "db7fc562-f9e2-4a6a-b4f4-c703a5222486",
+      "provider_id": "ab5fc20f-f802-4735-b086-daacbae7dd7b",
+      "day_of_week": 2,
+      "start_time": "08:00:00",
+      "end_time": "12:00:00",
+      "slot_duration_minutes": 30,
+      "treatment_types": [
+        "mens_health"
+      ],
+      "active": true,
+      "created_at": "2025-09-25T22:05:53.812019+00:00",
+      "updated_at": "2025-09-25T22:05:53.812019+00:00"
+    },
+    {
+      "id": "3ec8bf38-43a7-4503-928a-82ec8a075d21",
+      "provider_id": "ab5fc20f-f802-4735-b086-daacbae7dd7b",
+      "day_of_week": 2,
+      "start_time": "13:00:00",
+      "end_time": "17:00:00",
+      "slot_duration_minutes": 30,
+      "treatment_types": [
+        "mens_health"
+      ],
+      "active": true,
+      "created_at": "2025-09-25T22:05:53.813238+00:00",
+      "updated_at": "2025-09-25T22:05:53.813238+00:00"
+    },
+    {
+      "id": "dba33766-c7c3-45ae-91cb-3c5e4f9fdfa2",
+      "provider_id": "ab5fc20f-f802-4735-b086-daacbae7dd7b",
+      "day_of_week": 2,
+      "start_time": "18:00:00",
+      "end_time": "20:00:00",
+      "slot_duration_minutes": 30,
+      "treatment_types": [
+        "mens_health"
+      ],
+      "active": true,
+      "created_at": "2025-09-25T22:05:53.814317+00:00",
+      "updated_at": "2025-09-25T22:05:53.814317+00:00"
+    },
+    {
+      "id": "6d1c98df-c6be-4882-a877-5e16d96cd31d",
+      "provider_id": "ab5fc20f-f802-4735-b086-daacbae7dd7b",
+      "day_of_week": 3,
+      "start_time": "08:00:00",
+      "end_time": "12:00:00",
+      "slot_duration_minutes": 30,
+      "treatment_types": [
+        "mens_health"
+      ],
+      "active": true,
+      "created_at": "2025-09-25T22:05:53.815411+00:00",
+      "updated_at": "2025-09-25T22:05:53.815411+00:00"
+    },
+    {
+      "id": "fc2f1199-0ac6-4194-baab-0ba5bd422e21",
+      "provider_id": "ab5fc20f-f802-4735-b086-daacbae7dd7b",
+      "day_of_week": 3,
+      "start_time": "13:00:00",
+      "end_time": "17:00:00",
+      "slot_duration_minutes": 30,
+      "treatment_types": [
+        "mens_health"
+      ],
+      "active": true,
+      "created_at": "2025-09-25T22:05:53.816472+00:00",
+      "updated_at": "2025-09-25T22:05:53.816472+00:00"
+    },
+    {
+      "id": "87ac213a-fb96-458d-a866-23f8f0556aba",
+      "provider_id": "ab5fc20f-f802-4735-b086-daacbae7dd7b",
+      "day_of_week": 3,
+      "start_time": "18:00:00",
+      "end_time": "20:00:00",
+      "slot_duration_minutes": 30,
+      "treatment_types": [
+        "mens_health"
+      ],
+      "active": true,
+      "created_at": "2025-09-25T22:05:53.817494+00:00",
+      "updated_at": "2025-09-25T22:05:53.817494+00:00"
+    },
+    {
+      "id": "57150186-bf9f-4570-b6f3-70666151eec8",
+      "provider_id": "ab5fc20f-f802-4735-b086-daacbae7dd7b",
+      "day_of_week": 4,
+      "start_time": "08:00:00",
+      "end_time": "12:00:00",
+      "slot_duration_minutes": 30,
+      "treatment_types": [
+        "mens_health"
+      ],
+      "active": true,
+      "created_at": "2025-09-25T22:05:53.818659+00:00",
+      "updated_at": "2025-09-25T22:05:53.818659+00:00"
+    },
+    {
+      "id": "0a0f27b6-088a-42f3-8ef3-f03fa0ac8196",
+      "provider_id": "ab5fc20f-f802-4735-b086-daacbae7dd7b",
+      "day_of_week": 4,
+      "start_time": "13:00:00",
+      "end_time": "17:00:00",
+      "slot_duration_minutes": 30,
+      "treatment_types": [
+        "mens_health"
+      ],
+      "active": true,
+      "created_at": "2025-09-25T22:05:53.82001+00:00",
+      "updated_at": "2025-09-25T22:05:53.82001+00:00"
+    },
+    {
+      "id": "0b285f2b-eef1-46b5-a81a-a787631d8545",
+      "provider_id": "ab5fc20f-f802-4735-b086-daacbae7dd7b",
+      "day_of_week": 4,
+      "start_time": "18:00:00",
+      "end_time": "20:00:00",
+      "slot_duration_minutes": 30,
+      "treatment_types": [
+        "mens_health"
+      ],
+      "active": true,
+      "created_at": "2025-09-25T22:05:53.821524+00:00",
+      "updated_at": "2025-09-25T22:05:53.821524+00:00"
+    },
+    {
+      "id": "ce0a1d31-dbd6-4912-852c-2a41f222a7e6",
+      "provider_id": "ab5fc20f-f802-4735-b086-daacbae7dd7b",
+      "day_of_week": 5,
+      "start_time": "08:00:00",
+      "end_time": "12:00:00",
+      "slot_duration_minutes": 30,
+      "treatment_types": [
+        "mens_health"
+      ],
+      "active": true,
+      "created_at": "2025-09-25T22:05:53.822638+00:00",
+      "updated_at": "2025-09-25T22:05:53.822638+00:00"
+    },
+    {
+      "id": "2c174f7f-61ba-4504-8519-851283bfd93f",
+      "provider_id": "ab5fc20f-f802-4735-b086-daacbae7dd7b",
+      "day_of_week": 5,
+      "start_time": "13:00:00",
+      "end_time": "17:00:00",
+      "slot_duration_minutes": 30,
+      "treatment_types": [
+        "mens_health"
+      ],
+      "active": true,
+      "created_at": "2025-09-25T22:05:53.823557+00:00",
+      "updated_at": "2025-09-25T22:05:53.823557+00:00"
+    },
+    {
+      "id": "55e20cac-51d7-4af3-85f1-9fac369b0956",
+      "provider_id": "ab5fc20f-f802-4735-b086-daacbae7dd7b",
+      "day_of_week": 5,
+      "start_time": "18:00:00",
+      "end_time": "20:00:00",
+      "slot_duration_minutes": 30,
+      "treatment_types": [
+        "mens_health"
+      ],
+      "active": true,
+      "created_at": "2025-09-25T22:05:53.824412+00:00",
+      "updated_at": "2025-09-25T22:05:53.824412+00:00"
+    }
+  ],
+  "provider_availability_overrides": [
+    {
+      "id": "ea0b0e0a-7cae-4318-af73-50d829d7dc30",
+      "provider_id": "a44b32bb-00a5-460d-a18b-4468d59d0318",
+      "date": "2025-09-30",
+      "start_time": null,
+      "end_time": null,
+      "available": false,
+      "reason": "Provider vacation day",
+      "created_at": "2025-09-26T00:29:59.994732+00:00"
+    },
+    {
+      "id": "0e132258-c6d6-4dfb-bf85-f7bd0be75835",
+      "provider_id": "a44b32bb-00a5-460d-a18b-4468d59d0318",
+      "date": "2025-10-01",
+      "start_time": "12:00:00",
+      "end_time": "14:00:00",
+      "available": false,
+      "reason": "Extended lunch meeting",
+      "created_at": "2025-09-26T00:30:00.002978+00:00"
+    },
+    {
+      "id": "3e098ae1-1b35-49b7-8687-b9d771cabcd7",
+      "provider_id": "a44b32bb-00a5-460d-a18b-4468d59d0318",
+      "date": "2025-10-02",
+      "start_time": "19:00:00",
+      "end_time": "21:00:00",
+      "available": true,
+      "reason": "Special evening availability",
+      "created_at": "2025-09-26T00:30:00.010379+00:00"
+    }
+  ],
+  "appointments": [
+    {
+      "id": "e27806a4-86de-4a54-82b2-9747be5944cc",
+      "patient_id": "62442a9d-6ad3-46f9-ad5e-2c86d8584f84",
+      "provider_id": "a44b32bb-00a5-460d-a18b-4468d59d0318",
+      "assignment_id": "d85f0071-4045-4920-8184-e7f6ae7d027b",
+      "appointment_date": "2025-09-26",
+      "start_time": "10:00:00",
+      "end_time": "10:30:00",
+      "duration_minutes": 30,
+      "treatment_type": "weight_loss",
+      "appointment_type": "consultation",
+      "status": "scheduled",
+      "patient_notes": "Initial consultation for Semaglutide",
+      "provider_notes": null,
+      "admin_notes": null,
+      "booked_by": "patient",
+      "booked_by_user_id": "fe5fee47-896d-4ac7-ba2b-d35ef4589eee",
+      "booking_timestamp": "2025-09-25T22:49:48.82946+00:00",
+      "cancelled_at": null,
+      "cancelled_by": null,
+      "cancelled_by_user_id": null,
+      "cancellation_reason": null,
+      "created_at": "2025-09-25T22:49:48.82946+00:00",
+      "updated_at": "2025-09-25T22:49:48.82946+00:00"
+    },
+    {
+      "id": "e3774e22-70d6-4550-9062-26e46f8fc37c",
+      "patient_id": "62442a9d-6ad3-46f9-ad5e-2c86d8584f84",
+      "provider_id": "a44b32bb-00a5-460d-a18b-4468d59d0318",
+      "assignment_id": "d85f0071-4045-4920-8184-e7f6ae7d027b",
+      "appointment_date": "2025-09-29",
+      "start_time": "14:00:00",
+      "end_time": "14:30:00",
+      "duration_minutes": 30,
+      "treatment_type": "weight_loss",
+      "appointment_type": "consultation",
+      "status": "scheduled",
+      "patient_notes": "Test booking for Monday",
+      "provider_notes": null,
+      "admin_notes": null,
+      "booked_by": "patient",
+      "booked_by_user_id": "fe5fee47-896d-4ac7-ba2b-d35ef4589eee",
+      "booking_timestamp": "2025-09-25T23:01:51.465055+00:00",
+      "cancelled_at": null,
+      "cancelled_by": null,
+      "cancelled_by_user_id": null,
+      "cancellation_reason": null,
+      "created_at": "2025-09-25T23:01:51.465055+00:00",
+      "updated_at": "2025-09-25T23:01:51.465055+00:00"
+    },
+    {
+      "id": "e24c68cb-2278-4d54-a1c9-c57630648322",
+      "patient_id": "62442a9d-6ad3-46f9-ad5e-2c86d8584f84",
+      "provider_id": "a44b32bb-00a5-460d-a18b-4468d59d0318",
+      "assignment_id": "d85f0071-4045-4920-8184-e7f6ae7d027b",
+      "appointment_date": "2025-09-30",
+      "start_time": "10:00:00",
+      "end_time": "10:30:00",
+      "duration_minutes": 30,
+      "treatment_type": "weight_loss",
+      "appointment_type": "consultation",
+      "status": "scheduled",
+      "patient_notes": "Initial consultation for Semaglutide",
+      "provider_notes": null,
+      "admin_notes": null,
+      "booked_by": "patient",
+      "booked_by_user_id": "fe5fee47-896d-4ac7-ba2b-d35ef4589eee",
+      "booking_timestamp": "2025-09-25T23:04:53.265907+00:00",
+      "cancelled_at": null,
+      "cancelled_by": null,
+      "cancelled_by_user_id": null,
+      "cancellation_reason": null,
+      "created_at": "2025-09-25T23:04:53.265907+00:00",
+      "updated_at": "2025-09-25T23:04:53.265907+00:00"
+    },
+    {
+      "id": "962993e2-30f2-4172-8a55-08ce5d80b790",
+      "patient_id": "62442a9d-6ad3-46f9-ad5e-2c86d8584f84",
+      "provider_id": "a44b32bb-00a5-460d-a18b-4468d59d0318",
+      "assignment_id": "d85f0071-4045-4920-8184-e7f6ae7d027b",
+      "appointment_date": "2025-09-26",
+      "start_time": "10:30:00",
+      "end_time": "11:00:00",
+      "duration_minutes": 30,
+      "treatment_type": "weight_loss",
+      "appointment_type": "consultation",
+      "status": "scheduled",
+      "patient_notes": "Initial consultation for Semaglutide",
+      "provider_notes": null,
+      "admin_notes": null,
+      "booked_by": "patient",
+      "booked_by_user_id": "fe5fee47-896d-4ac7-ba2b-d35ef4589eee",
+      "booking_timestamp": "2025-09-25T23:21:43.597083+00:00",
+      "cancelled_at": null,
+      "cancelled_by": null,
+      "cancelled_by_user_id": null,
+      "cancellation_reason": null,
+      "created_at": "2025-09-25T23:21:43.597083+00:00",
+      "updated_at": "2025-09-25T23:21:43.597083+00:00"
+    },
+    {
+      "id": "4d071664-59d9-4f34-8c0a-f47a96785ac5",
+      "patient_id": "62442a9d-6ad3-46f9-ad5e-2c86d8584f84",
+      "provider_id": "a44b32bb-00a5-460d-a18b-4468d59d0318",
+      "assignment_id": "d85f0071-4045-4920-8184-e7f6ae7d027b",
+      "appointment_date": "2025-09-30",
+      "start_time": "11:00:00",
+      "end_time": "11:30:00",
+      "duration_minutes": 30,
+      "treatment_type": "weight_loss",
+      "appointment_type": "consultation",
+      "status": "scheduled",
+      "patient_notes": "Initial consultation for Semaglutide",
+      "provider_notes": null,
+      "admin_notes": null,
+      "booked_by": "patient",
+      "booked_by_user_id": "fe5fee47-896d-4ac7-ba2b-d35ef4589eee",
+      "booking_timestamp": "2025-09-26T00:14:00.887828+00:00",
+      "cancelled_at": null,
+      "cancelled_by": null,
+      "cancelled_by_user_id": null,
+      "cancellation_reason": null,
+      "created_at": "2025-09-26T00:14:00.887828+00:00",
+      "updated_at": "2025-09-26T00:14:00.887828+00:00"
+    },
+    {
+      "id": "9f6eed4d-026c-4314-88ed-73b2d5485248",
+      "patient_id": "62442a9d-6ad3-46f9-ad5e-2c86d8584f84",
+      "provider_id": "a44b32bb-00a5-460d-a18b-4468d59d0318",
+      "assignment_id": "d85f0071-4045-4920-8184-e7f6ae7d027b",
+      "appointment_date": "2025-10-01",
+      "start_time": "08:00:00",
+      "end_time": "08:30:00",
+      "duration_minutes": 30,
+      "treatment_type": "weight_loss",
+      "appointment_type": "consultation",
+      "status": "scheduled",
+      "patient_notes": "Initial consultation for Semaglutide",
+      "provider_notes": null,
+      "admin_notes": null,
+      "booked_by": "patient",
+      "booked_by_user_id": "fe5fee47-896d-4ac7-ba2b-d35ef4589eee",
+      "booking_timestamp": "2025-09-26T00:44:19.917425+00:00",
+      "cancelled_at": null,
+      "cancelled_by": null,
+      "cancelled_by_user_id": null,
+      "cancellation_reason": null,
+      "created_at": "2025-09-26T00:44:19.917425+00:00",
+      "updated_at": "2025-09-26T00:44:19.917425+00:00"
+    }
+  ],
+  "appointment_history": [
+    {
+      "id": "68c25661-b3cd-4cb0-b6e4-5196899ecc57",
+      "appointment_id": "9f6eed4d-026c-4314-88ed-73b2d5485248",
+      "action": "created",
+      "performed_by": "system",
+      "performed_by_user_id": null,
+      "old_values": null,
+      "new_values": {
+        "id": "9f6eed4d-026c-4314-88ed-73b2d5485248",
+        "status": "scheduled",
+        "end_time": "08:30:00",
+        "booked_by": "patient",
+        "created_at": "2025-09-26T00:44:19.917425+00:00",
+        "patient_id": "62442a9d-6ad3-46f9-ad5e-2c86d8584f84",
+        "start_time": "08:00:00",
+        "updated_at": "2025-09-26T00:44:19.917425+00:00",
+        "admin_notes": null,
+        "provider_id": "a44b32bb-00a5-460d-a18b-4468d59d0318",
+        "cancelled_at": null,
+        "cancelled_by": null,
+        "assignment_id": "d85f0071-4045-4920-8184-e7f6ae7d027b",
+        "patient_notes": "Initial consultation for Semaglutide",
+        "provider_notes": null,
+        "treatment_type": "weight_loss",
+        "appointment_date": "2025-10-01",
+        "appointment_type": "consultation",
+        "duration_minutes": 30,
+        "booked_by_user_id": "fe5fee47-896d-4ac7-ba2b-d35ef4589eee",
+        "booking_timestamp": "2025-09-26T00:44:19.917425+00:00",
+        "cancellation_reason": null,
+        "cancelled_by_user_id": null
+      },
+      "reason": null,
+      "created_at": "2025-09-26T00:44:19.917425+00:00"
+    }
+  ],
+  "patient_medication_preferences": [
+    {
+      "id": "b74ed488-116b-4a28-989e-08a7366f70ad",
+      "patient_id": "a0e04389-5ad4-4d1d-8454-46ec1897b37a",
+      "medication_id": "50cb3740-8499-4e1f-8dd1-5406f7d19d2b",
+      "preferred_dosage": "0.5mg",
+      "frequency": "weekly",
+      "notes": "Starting dose for weight management",
+      "status": "pending",
+      "requested_date": "2025-09-25T21:40:03.413463+00:00",
+      "created_at": "2025-09-25T21:40:03.413463+00:00",
+      "updated_at": "2025-09-25T21:40:03.413463+00:00"
+    },
+    {
+      "id": "5aba2361-9246-4886-b5e0-bdf955691b69",
+      "patient_id": "e9bbaaa6-9ba0-44c3-9a1f-a3988cdd1f9e",
+      "medication_id": "c6a4e5e9-c4c2-4f3f-b800-fb90a59c5a4e",
+      "preferred_dosage": "1.0mg",
+      "frequency": "weekly",
+      "notes": "Higher dose for weight loss",
+      "status": "approved",
+      "requested_date": "2025-09-25T21:40:03.413463+00:00",
+      "created_at": "2025-09-25T21:40:03.413463+00:00",
+      "updated_at": "2025-09-25T21:40:03.413463+00:00"
+    },
+    {
+      "id": "e5710d88-bf4f-47be-b8e9-9fc94c62a688",
+      "patient_id": "f2cd7e9b-eba9-42c3-ae1f-e842c1937408",
+      "medication_id": "34936643-fbf5-4718-9014-abfc5c4ea317",
+      "preferred_dosage": "2.4mg",
+      "frequency": "weekly",
+      "notes": "Max dose for significant weight loss",
+      "status": "approved",
+      "requested_date": "2025-09-25T21:40:03.413463+00:00",
+      "created_at": "2025-09-25T21:40:03.413463+00:00",
+      "updated_at": "2025-09-25T21:40:03.413463+00:00"
+    },
+    {
+      "id": "4314dd70-19cf-46b1-a3f8-dd68347d46e0",
+      "patient_id": "a1cf5b13-f706-44c4-a4cf-dc154fb5ff3c",
+      "medication_id": "50cb3740-8499-4e1f-8dd1-5406f7d19d2b",
+      "preferred_dosage": "0.25mg",
+      "frequency": "weekly",
+      "notes": "Starting with lowest dose",
+      "status": "pending",
+      "requested_date": "2025-09-25T21:40:03.413463+00:00",
+      "created_at": "2025-09-25T21:40:03.413463+00:00",
+      "updated_at": "2025-09-25T21:40:03.413463+00:00"
+    },
+    {
+      "id": "e93003fd-5570-49bf-9217-26f7570719c9",
+      "patient_id": "62442a9d-6ad3-46f9-ad5e-2c86d8584f84",
+      "medication_id": "34936643-fbf5-4718-9014-abfc5c4ea317",
+      "preferred_dosage": "2.5mg",
+      "frequency": null,
+      "notes": null,
+      "status": "pending",
+      "requested_date": "2025-09-26T00:42:22.501216+00:00",
+      "created_at": "2025-09-26T00:42:22.501216+00:00",
+      "updated_at": "2025-09-26T00:42:22.501216+00:00"
+    }
+  ],
+  "medication_approvals": [],
+  "medication_orders": []
+}

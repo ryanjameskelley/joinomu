@@ -17,7 +17,8 @@ INSERT INTO auth.users (
   'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
   '00000000-0000-0000-0000-000000000000',
   'admin@test.com',
-  crypt('admin123', gen_salt('bf')),
+  -- crypt('admin123', gen_salt('bf')), -- Commented out due to gen_salt function not available
+  'admin123',
   now(),
   '{"provider": "email", "providers": ["email"]}',
   '{"role": "admin", "first_name": "Admin", "last_name": "User"}',
@@ -27,7 +28,8 @@ INSERT INTO auth.users (
   'authenticated'
 ) ON CONFLICT (id) DO UPDATE SET
   email = 'admin@test.com',
-  encrypted_password = crypt('admin123', gen_salt('bf')),
+  -- encrypted_password = crypt('admin123', gen_salt('bf')), -- Commented out due to gen_salt function not available
+  encrypted_password = 'admin123',
   email_confirmed_at = now(),
   raw_user_meta_data = '{"role": "admin", "first_name": "Admin", "last_name": "User"}',
   updated_at = now();
@@ -49,7 +51,8 @@ INSERT INTO auth.users (
   '11111111-1111-1111-1111-111111111111',
   '00000000-0000-0000-0000-000000000000',
   'sarah.j@test.com',
-  crypt('patient123', gen_salt('bf')),
+  -- crypt('patient123', gen_salt('bf')), -- Commented out due to gen_salt function not available
+  'patient123',
   now(),
   '{"provider": "email", "providers": ["email"]}',
   '{"role": "patient", "first_name": "Sarah", "last_name": "Johnson"}',
@@ -59,7 +62,8 @@ INSERT INTO auth.users (
   'authenticated'
 ) ON CONFLICT (id) DO UPDATE SET
   email = 'sarah.j@test.com',
-  encrypted_password = crypt('patient123', gen_salt('bf')),
+  -- encrypted_password = crypt('patient123', gen_salt('bf')), -- Commented out due to gen_salt function not available
+  encrypted_password = 'patient123',
   email_confirmed_at = now(),
   raw_user_meta_data = '{"role": "patient", "first_name": "Sarah", "last_name": "Johnson"}',
   updated_at = now();

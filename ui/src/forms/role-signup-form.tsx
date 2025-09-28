@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../components/select"
+import { Checkbox } from "../components/checkbox"
 
 interface RoleSignupFormProps {
   className?: string
@@ -36,7 +37,7 @@ export interface SignupFormData {
   role: 'patient' | 'admin' | 'provider'
   dateOfBirth?: string
   phone?: string
-  specialty?: string
+  specialty?: string | string[]  // Allow both string and array for backward compatibility
   licenseNumber?: string
 }
 
@@ -58,14 +59,31 @@ export function RoleSignupForm({
     role: 'patient',
     dateOfBirth: '',
     phone: '',
-    specialty: '',
+    specialty: [],
     licenseNumber: ''
   })
+  
+  const specialtyOptions = [
+    { id: 'weight_loss', label: 'Weight Loss' },
+    { id: 'mens_health', label: 'Men\'s Health' },
+    { id: 'therapy', label: 'Therapy' }
+  ]
   const [confirmPassword, setConfirmPassword] = React.useState('')
   const [localError, setLocalError] = React.useState('')
 
   const handleInputChange = (field: keyof SignupFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
+  }
+
+  const handleSpecialtyChange = (specialtyId: string, checked: boolean) => {
+    setFormData(prev => {
+      const currentSpecialties = Array.isArray(prev.specialty) ? prev.specialty : []
+      if (checked) {
+        return { ...prev, specialty: [...currentSpecialties, specialtyId] }
+      } else {
+        return { ...prev, specialty: currentSpecialties.filter(s => s !== specialtyId) }
+      }
+    })
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -87,8 +105,8 @@ export function RoleSignupForm({
       return
     }
 
-    if (formData.role === 'provider' && (!formData.specialty || !formData.licenseNumber)) {
-      setLocalError('Specialty and license number are required for providers')
+    if (formData.role === 'provider' && (!formData.specialty || (Array.isArray(formData.specialty) && formData.specialty.length === 0) || !formData.licenseNumber)) {
+      setLocalError('At least one specialty and license number are required for providers')
       return
     }
 
@@ -191,15 +209,24 @@ export function RoleSignupForm({
               {formData.role === 'provider' && (
                 <>
                   <div className="grid gap-3">
-                    <Label htmlFor="specialty">Medical Specialty</Label>
-                    <Input
-                      id="specialty"
-                      type="text"
-                      placeholder="Family Medicine"
-                      value={formData.specialty}
-                      onChange={(e) => handleInputChange('specialty', e.target.value)}
-                      required
-                    />
+                    <Label>Medical Specialties (Select all that apply)</Label>
+                    <div className="grid gap-2 p-3 border rounded-md">
+                      {specialtyOptions.map((option) => {
+                        const currentSpecialties = Array.isArray(formData.specialty) ? formData.specialty : []
+                        return (
+                          <div key={option.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={option.id}
+                              checked={currentSpecialties.includes(option.id)}
+                              onCheckedChange={(checked) => handleSpecialtyChange(option.id, !!checked)}
+                            />
+                            <Label htmlFor={option.id} className="text-sm font-normal cursor-pointer">
+                              {option.label}
+                            </Label>
+                          </div>
+                        )
+                      })}
+                    </div>
                   </div>
                   <div className="grid gap-3">
                     <Label htmlFor="licenseNumber">License Number</Label>
