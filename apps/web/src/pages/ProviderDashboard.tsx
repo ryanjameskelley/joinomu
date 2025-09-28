@@ -164,16 +164,72 @@ export function ProviderDashboard() {
       return
     }
     
-    // Fetch patient medication preferences
+    // Fetch patient medication preferences and appointments
     try {
-      console.log('🔍 Fetching medication preferences for patient:', patient.id)
+      console.log('🔍 Fetching patient data for:', patient.id)
       console.log('🔍 Current dialog state:', dialogOpen)
       setIsLoadingPatient(true)
-      const result = await authService.getPatientMedicationPreferences(patient.id)
-      console.log('🔍 Medication preferences result:', result)
-      const { data: medicationPreferences } = result
       
-      // Convert Patient to ProviderPatientData format including medication preferences
+      // Fetch medication preferences using profile_id (auth user ID)
+      console.log('🔍 Using patient.profile_id for medication preferences:', patient.profile_id)
+      const medicationResult = await authService.getPatientMedicationPreferences(patient.profile_id)
+      console.log('🔍 Medication preferences result:', medicationResult)
+      const { data: medicationPreferences } = medicationResult
+      
+      // Fetch patient appointments (visits) - need to get profile_id first
+      console.log('🔍 Fetching patient appointments for visits...')
+      let visits: any[] = []
+      try {
+        // First, get the patient's profile_id from the patients table
+        const patientRecord = await fetch(`http://127.0.0.1:54321/rest/v1/patients?id=eq.${patient.id}&select=profile_id`, {
+          headers: {
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0',
+            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0`
+          }
+        })
+        const patientData = await patientRecord.json()
+        
+        let patientProfileId = patient.id // fallback
+        if (patientData && patientData.length > 0) {
+          patientProfileId = patientData[0].profile_id
+          console.log('🔍 Found patient profile_id:', patientProfileId)
+        } else {
+          console.log('🔍 No profile_id found, using patient id:', patient.id)
+        }
+        
+        const appointmentsResult = await authService.getPatientAppointments(patientProfileId, true)
+        console.log('🔍 Patient appointments result:', appointmentsResult)
+        
+        if (appointmentsResult.data) {
+          // Convert appointments to PatientVisit format and sort by most recent first
+          visits = appointmentsResult.data
+            .map((appt: any) => ({
+              id: appt.appointment_id || appt.id,  // Use appointment_id from RPC result
+              appointment_date: appt.appointment_date,
+              start_time: appt.start_time,
+              appointment_type: appt.appointment_type || 'consultation',
+              treatment_type: appt.treatment_type,
+              status: appt.status,
+              provider_notes: appt.provider_notes,
+              patient_notes: appt.patient_notes
+            }))
+            .sort((a, b) => {
+              // Sort by date descending, then by time descending (most recent first)
+              const dateCompare = new Date(b.appointment_date).getTime() - new Date(a.appointment_date).getTime()
+              if (dateCompare === 0) {
+                // Same date, compare times
+                return b.start_time.localeCompare(a.start_time)
+              }
+              return dateCompare
+            })
+          console.log(`✅ Converted and sorted ${visits.length} appointments (most recent first)`)
+        }
+      } catch (appointmentError) {
+        console.warn('⚠️ Error fetching patient appointments:', appointmentError)
+        // Continue without appointments - they'll show as "no visits"
+      }
+      
+      // Convert Patient to ProviderPatientData format including medication preferences and visits
       const providerPatientData: ProviderPatientData = {
         id: patient.id,
         name: patient.name,
@@ -185,7 +241,8 @@ export function ProviderDashboard() {
         treatmentType: patient.treatmentType,
         assignedDate: patient.assignedDate,
         isPrimary: patient.isPrimary,
-        medicationPreferences: medicationPreferences || []
+        medicationPreferences: medicationPreferences || [],
+        visits: visits
       }
       
       console.log('✅ Provider patient data with preferences:', providerPatientData)
@@ -194,8 +251,8 @@ export function ProviderDashboard() {
       setDialogOpen(true)
       console.log('🔄 Dialog should be open now')
     } catch (error) {
-      console.error('❌ Error fetching patient medication preferences:', error)
-      // Fallback to basic patient data without preferences
+      console.error('❌ Error fetching patient data:', error)
+      // Fallback to basic patient data without preferences or visits
       const providerPatientData: ProviderPatientData = {
         id: patient.id,
         name: patient.name,
@@ -204,7 +261,8 @@ export function ProviderDashboard() {
         assignedDate: patient.assignedDate,
         isPrimary: patient.isPrimary,
         patientId: patient.id,
-        medicationPreferences: []
+        medicationPreferences: [],
+        visits: []
       }
       setSelectedPatient(providerPatientData)
       setDialogOpen(true)
@@ -243,8 +301,12 @@ export function ProviderDashboard() {
         
         // Refresh the patient data to show updated medication preferences
         if (selectedPatient) {
-          const { data: medicationPreferences } = await authService.getPatientMedicationPreferences(selectedPatient.id)
-          setSelectedPatient(prev => prev ? {...prev, medicationPreferences: medicationPreferences || []} : null)
+          // Find the patient in the assigned patients list to get their profile_id
+          const patientInList = assignedPatients.find(p => p.id === selectedPatient.id)
+          if (patientInList?.profile_id) {
+            const { data: medicationPreferences } = await authService.getPatientMedicationPreferences(patientInList.profile_id)
+            setSelectedPatient(prev => prev ? {...prev, medicationPreferences: medicationPreferences || []} : null)
+          }
         }
       } else {
         MedicationToast.error('medication preference', result.error?.message || 'Unknown error')
@@ -279,6 +341,7 @@ export function ProviderDashboard() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         patient={selectedPatient}
+        providerId={providerData?.id}
         onMedicationUpdate={handleMedicationUpdate}
       />
     </>

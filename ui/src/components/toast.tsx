@@ -1,7 +1,7 @@
 "use client"
 
 import { toast } from "sonner"
-import { Database, AlertCircle, Info, AlertTriangle } from "lucide-react"
+import { Database, AlertCircle, Info, AlertTriangle, Calendar } from "lucide-react"
 
 export interface ToastOptions {
   title: string
@@ -67,6 +67,12 @@ export const Sonner = {
       title: "Copied",
       description: `${refNumber} copied to clipboard`,
       variant: 'success'
+    }),
+
+  appointmentRescheduled: (appointmentDetails: string) =>
+    toast("Appointment Rescheduled", {
+      description: `Your appointment has been rescheduled to ${appointmentDetails}`,
+      icon: <Calendar className="h-4 w-4" />
     })
 }
 

@@ -3,6 +3,8 @@ export { PatientsService, patientsService } from './patients-service.js'
 export { AdminsService, adminsService } from './admins-service.js'
 export { HealthMetricsService, healthMetricsService } from './health-metrics-service.js'
 export { ProvidersService } from './providers-service.js'
+export { ClinicalNotesService } from './clinical-notes-service.js'
+export { AddendumService } from './addendum-service.js'
 export { WearableDevicesService, wearableDevicesService } from './wearable-devices-service.js'
 export { HealthGoalsService, healthGoalsService } from './health-goals-service.js'
 export { HealthPermissionsService, healthPermissionsService } from './health-permissions-service.js'
@@ -35,6 +37,19 @@ export type {
   CreateProviderData,
   UpdateProviderData
 } from './providers-service.js'
+
+export type {
+  ClinicalNote,
+  CreateClinicalNoteData,
+  UpdateClinicalNoteData,
+  VisitInteraction,
+  CreateVisitInteractionData
+} from './clinical-notes-service.js'
+
+export type {
+  VisitAddendum,
+  CreateAddendumData
+} from './addendum-service.js'
 
 export type {
   DeviceConnectionStatus,

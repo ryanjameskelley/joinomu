@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { MedicationPreference, type MedicationInfo } from './medication-preference'
+import { MedicationCard } from './medication-card'
 
 const meta: Meta<typeof MedicationPreference> = {
   title: 'Atomic/Molecules/Medication Preference',
@@ -121,6 +122,85 @@ export const Denied: Story = {
       },
     },
   },
+}
+
+// New onboarding completion stories
+const medicationPendingData: MedicationInfo = {
+  name: 'Semaglutide (Ozempic)',
+  dosage: '0.25mg (starting dose)',
+  frequency: 'Once weekly injection',
+  status: 'pending',
+  category: 'weightloss',
+  description: 'Your provider will review your medical history and approve your preferred medication within 24-48 hours.',
+  averageResults: {
+    weightLoss: '12-15% body weight over 6 months',
+    bloodSugar: '1.5-2.0% HbA1c reduction',
+    satisfaction: '85% patient satisfaction in clinical trials'
+  }
+}
+
+export const MedicationPending: Story = {
+  args: {
+    medication: medicationPendingData,
+    paymentRequired: false,
+    showAverageResults: false,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Simple medication pending approval state for onboarding completion. Shows selected medication in a compact two-line format with clickable title and status badge.',
+      },
+    },
+  },
+  decorators: [
+    (Story) => (
+      <div className="max-w-md">
+        {/* Use the simple MedicationCard layout with clickable title */}
+        <MedicationCard
+          medicationName={medicationPendingData.name}
+          dosage={medicationPendingData.dosage}
+          supply="30 day supply"
+          status="pending"
+          onTitleClick={() => alert('Edit medication clicked')}
+        />
+      </div>
+    ),
+  ],
+}
+
+export const VisitScheduled: Story = {
+  args: {
+    medication: {
+      name: 'Upcoming Appointment',
+      dosage: 'Initial Consultation',
+      frequency: 'December 15, 2024 at 2:00 PM',
+      status: 'approved',
+      category: 'weightloss',
+      description: 'Virtual consultation with Dr. Sarah Johnson to discuss your weight loss goals and review your medication preferences.',
+    } as MedicationInfo,
+    showAverageResults: false,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Visit scheduled state for onboarding completion. Shows upcoming appointment details in a compact two-line format with clickable title for rescheduling.',
+      },
+    },
+  },
+  decorators: [
+    (Story) => (
+      <div className="max-w-md">
+        {/* Use the simple MedicationCard layout with clickable title */}
+        <MedicationCard
+          medicationName="Dr. Sarah Johnson"
+          dosage="Initial Consultation"
+          supply="December 15, 2024 at 2:00 PM"
+          status="scheduled"
+          onTitleClick={() => alert('Reschedule appointment clicked')}
+        />
+      </div>
+    ),
+  ],
 }
 
 
