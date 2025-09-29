@@ -21,6 +21,7 @@ export interface MedicationInfo {
   status: 'pending' | 'approved' | 'denied'
   category: 'weightloss' | 'mens-health' | 'general'
   description?: string
+  estimatedDelivery?: string
   averageResults?: {
     weightLoss: string
     bloodSugar: string
@@ -120,8 +121,16 @@ function MedicationCard({
                   {config.text}
                 </Badge>
               </div>
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm text-muted-foreground space-y-1">
               <p><span className="font-medium">Dosage:</span> {medication.dosage}</p>
+              <p><span className="font-medium">Frequency:</span> {medication.frequency}</p>
+              {medication.estimatedDelivery && (
+                <p><span className="font-medium">Estimated Delivery:</span> {new Date(medication.estimatedDelivery).toLocaleDateString('en-US', {
+                  month: '2-digit',
+                  day: '2-digit', 
+                  year: 'numeric'
+                })}</p>
+              )}
             </div>
             {medication.description && (
               <p className="text-sm text-muted-foreground">{medication.description}</p>

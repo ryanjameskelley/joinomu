@@ -34,6 +34,10 @@ export interface MedicationCardProps {
    */
   orderNumber?: string
   /**
+   * Optional estimated delivery date
+   */
+  estimatedDelivery?: string
+  /**
    * Optional edit handler - shows edit link when provided
    */
   onEdit?: () => void
@@ -59,6 +63,7 @@ export function MedicationCard({
   orderDate,
   approvalId,
   orderNumber,
+  estimatedDelivery,
   onEdit,
   onTitleClick,
   className,
@@ -137,22 +142,32 @@ export function MedicationCard({
             <Separator orientation="vertical" className="mx-2 h-4" />
             <span>{supply}</span>
           </div>
-          {(orderDate || approvalId || orderNumber) && (
+          {(orderDate || approvalId || orderNumber || estimatedDelivery) && (
             <div className="flex items-center text-xs text-muted-foreground pt-1">
               {orderNumber && (
                 <>
                   <span>{orderNumber}</span>
-                  {(approvalId || orderDate) && <Separator orientation="vertical" className="mx-2 h-3" />}
+                  {(approvalId || orderDate || estimatedDelivery) && <Separator orientation="vertical" className="mx-2 h-3" />}
                 </>
               )}
               {approvalId && (
                 <>
                   <span>Approval: {approvalId.slice(0, 8)}...</span>
-                  {orderDate && <Separator orientation="vertical" className="mx-2 h-3" />}
+                  {(orderDate || estimatedDelivery) && <Separator orientation="vertical" className="mx-2 h-3" />}
                 </>
               )}
               {orderDate && (
-                <span>Ordered: {orderDate}</span>
+                <>
+                  <span>Ordered: {orderDate}</span>
+                  {estimatedDelivery && <Separator orientation="vertical" className="mx-2 h-3" />}
+                </>
+              )}
+              {estimatedDelivery && (
+                <span>Estimated Delivery: {new Date(estimatedDelivery).toLocaleDateString('en-US', {
+                  month: '2-digit',
+                  day: '2-digit', 
+                  year: 'numeric'
+                })}</span>
               )}
             </div>
           )}

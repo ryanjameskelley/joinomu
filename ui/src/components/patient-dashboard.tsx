@@ -75,6 +75,7 @@ export function PatientDashboard({
     dosage: string
     supply: string
     status: 'pending' | 'approved' | 'denied'
+    estimatedDelivery?: string
   }[]
   realAppointmentData?: {
     id: string
@@ -160,6 +161,7 @@ export function PatientDashboard({
                           dosage={medication.dosage}
                           supply={medication.supply}
                           status={medication.status}
+                          estimatedDelivery={medication.estimatedDelivery}
                           onTitleClick={() => onEditMedication?.(medication.id)}
                           className="w-full"
                         />

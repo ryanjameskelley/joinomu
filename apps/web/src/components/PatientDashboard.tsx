@@ -136,11 +136,33 @@ export function PatientDashboard() {
       
       if (medicationResult.data && medicationResult.data.length > 0) {
         console.log('✅ Setting REAL medication data from Supabase:', medicationResult.data)
-        const medicationCards = medicationResult.data.map((med: any, index: number) => {
+        
+        // Fetch estimated delivery dates from medication orders for each preference
+        const medicationCards = await Promise.all(medicationResult.data.map(async (med: any, index: number) => {
           console.log(`🔍 Processing medication ${index}:`, med)
           console.log(`🔍 Raw medication_id field:`, med.medication_id)
           console.log(`🔍 All medication fields:`, Object.keys(med))
           console.log(`🔍 Medications object:`, med.medications)
+          
+          // Get the estimated delivery date from the most recent medication order for this preference
+          let estimatedDelivery = null
+          try {
+            const ordersResult = await authService.getOrdersByPreferenceId(med.id)
+            if (ordersResult.data && ordersResult.data.length > 0) {
+              // Get the most recent order with an estimated delivery date
+              const orderWithDelivery = ordersResult.data
+                .filter((order: any) => order.estimated_delivery)
+                .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
+              
+              if (orderWithDelivery) {
+                estimatedDelivery = orderWithDelivery.estimated_delivery
+                console.log(`🔍 Found estimated delivery for ${med.medications?.name}:`, estimatedDelivery)
+              }
+            }
+          } catch (error) {
+            console.log(`⚠️ Could not fetch delivery date for medication ${med.medications?.name}:`, error)
+          }
+          
           return {
             id: med.id, // This is the preference ID
             medicationId: med.medication_id, // Keep the original medication ID for lookup
@@ -148,12 +170,13 @@ export function PatientDashboard() {
             dosage: med.preferred_dosage || 'Not specified',
             supply: med.frequency || '30 day supply',
             status: med.status || 'pending',
+            estimatedDelivery: estimatedDelivery,
             // Add additional fields for editing
             preferenceId: med.id,
             medicationInfo: med.medications,
             dosageInfo: med.medication_dosages
           }
-        })
+        }))
         console.log('✅ Final medication cards to display:', medicationCards)
         setRealMedicationData(medicationCards)
       } else {

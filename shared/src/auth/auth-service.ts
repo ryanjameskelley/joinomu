@@ -347,6 +347,71 @@ class AuthService {
     }
   }
 
+  async getOrdersByPreferenceId(preferenceId: string) {
+    try {
+      console.log('🔍 getOrdersByPreferenceId for preference ID:', preferenceId)
+
+      // Get medication orders that are linked to this preference through approvals
+      const { data, error } = await supabase
+        .from('medication_orders')
+        .select(`
+          *,
+          medications (
+            name,
+            unit_price
+          ),
+          medication_approvals!inner (
+            id,
+            approved_dosage,
+            patient_medication_preferences!inner (
+              id,
+              preferred_dosage
+            )
+          )
+        `)
+        .eq('medication_approvals.patient_medication_preferences.id', preferenceId)
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.log('❌ Error fetching orders by preference ID:', error)
+        return { data: [], error }
+      }
+
+      console.log('🔍 Raw orders by preference data:', data)
+
+      // Transform the data to match expected format
+      const transformedData = data?.map((order: any) => ({
+        id: order.id,
+        patient_id: order.patient_id,
+        medication_id: order.medication_id,
+        medication_name: order.medications?.name,
+        dosage: order.medication_approvals?.approved_dosage || 
+               order.medication_approvals?.patient_medication_preferences?.preferred_dosage || 
+               'Not specified',
+        quantity: order.quantity,
+        unit_price: order.unit_price,
+        total_amount: order.total_amount,
+        payment_status: order.payment_status,
+        fulfillment_status: order.fulfillment_status,
+        payment_method: order.payment_method,
+        payment_date: order.payment_date,
+        shipped_date: order.shipped_date,
+        estimated_delivery: order.estimated_delivery,
+        tracking_number: order.tracking_number,
+        admin_notes: order.admin_notes,
+        created_at: order.created_at,
+        updated_at: order.updated_at
+      })) || []
+
+      console.log('🔍 Transformed orders by preference:', transformedData)
+
+      return { data: transformedData, error: null }
+    } catch (error: any) {
+      console.log('❌ Exception in getOrdersByPreferenceId:', error)
+      return { data: [], error }
+    }
+  }
+
   async getPatientMedicationsDetailed(patientId: string) {
     try {
       console.log('🔍 getPatientMedicationsDetailed for patient ID:', patientId)
