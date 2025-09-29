@@ -342,6 +342,19 @@ export function EnhancedPatientInformationDialog({
         }
         
         if (result.success) {
+          // Update the selectedOrder object with the new data from the database
+          setSelectedOrder({
+            ...selectedOrder,
+            payment_status: orderPaymentStatus,
+            payment_method: orderPaymentMethod,
+            payment_date: orderPaymentDate,
+            fulfillment_status: orderFulfillmentStatus,
+            tracking_number: orderTrackingNumber,
+            shipped_date: orderShippedDate,
+            estimated_delivery: orderEstimatedDelivery,
+            admin_notes: orderAdminNotes
+          })
+          
           // Show success toast
           Sonner.saved('Order ' + selectedOrder.id.slice(0, 8))
           setEditingOrder(false)
