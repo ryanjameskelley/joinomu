@@ -105,7 +105,7 @@ function PatientTable({
           last_name,
           email,
           has_completed_intake,
-          patient_providers (
+          patient_assignments (
             treatment_type,
             is_primary,
             assigned_date,
@@ -119,12 +119,12 @@ function PatientTable({
       if (!error && patientData) {
         const transformedPatients: Patient[] = patientData.map((patient: any) => {
           // Extract provider info from relationships
-          const providers = patient.patient_providers?.map((pp: any) => 
-            `Dr. ${pp.providers.first_name} ${pp.providers.last_name}`
+          const providers = patient.patient_assignments?.map((pa: any) => 
+            `Dr. ${pa.providers.first_name} ${pa.providers.last_name}`
           ) || []
           
-          const treatments = patient.patient_providers?.map((pp: any) => 
-            pp.treatment_type.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())
+          const treatments = patient.patient_assignments?.map((pa: any) => 
+            pa.treatment_type.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())
           ) || []
 
           const status = patient.has_completed_intake ? ['Active'] : ['Onboarding']

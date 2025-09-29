@@ -1,0 +1,11 @@
+# JoinOmu Database Backup Jobs with Full Paths
+PATH=/usr/local/bin:/usr/bin:/bin
+
+# Run comprehensive backup daily at 2 AM
+0 2 * * * cd '/Users/ryankelley/Desktop/Ryan'\''s Macbook Pro/JoinOmu GLP-1/joinomu-monorepo' && ./comprehensive-backup.sh >> ./backups/cron.log 2>&1
+
+# Run schema-only backup every 6 hours
+0 */6 * * * cd '/Users/ryankelley/Desktop/Ryan'\''s Macbook Pro/JoinOmu GLP-1/joinomu-monorepo' && ./schema-backup.sh >> ./backups/cron.log 2>&1
+
+# Run health check daily at 9 AM
+0 9 * * * cd '/Users/ryankelley/Desktop/Ryan'\''s Macbook Pro/JoinOmu GLP-1/joinomu-monorepo' && ./auth-health-check.sh >> ./backups/health.log 2>&1

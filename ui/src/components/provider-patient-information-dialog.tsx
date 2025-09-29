@@ -774,7 +774,12 @@ export function ProviderPatientInformationDialog({
                     <div className="space-y-4">
                       <Card>
                         <CardHeader>
-                          <CardTitle>Visit Details - {new Date(selectedVisit.appointment_date).toLocaleDateString()}</CardTitle>
+                          <CardTitle>Visit Details - {(() => {
+                            // Parse date safely to avoid timezone issues
+                            const [year, month, day] = selectedVisit.appointment_date.split('-').map(Number)
+                            const date = new Date(year, month - 1, day) // month is 0-indexed
+                            return date.toLocaleDateString()
+                          })()}</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                           <div className="grid grid-cols-2 gap-4 text-sm">

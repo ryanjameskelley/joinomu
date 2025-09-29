@@ -11,6 +11,7 @@ import {
   Heart,
   ShoppingCart,
   Copy,
+  CalendarDays,
 } from 'lucide-react'
 import {
   Breadcrumb,
@@ -55,6 +56,7 @@ import {
   SelectValue,
 } from './select'
 import { Textarea } from './textarea'
+import { VisitsBookingDialog } from './visits-booking-dialog'
 
 export interface PatientMedication {
   id: string
@@ -74,6 +76,7 @@ const patientNavData = {
     { name: "Medications", icon: Pill },
     { name: "Preferred Medications", icon: Heart },
     { name: "Orders", icon: ShoppingCart },
+    { name: "Visits", icon: CalendarDays },
     { name: "Tracking", icon: Activity },
   ],
 }
@@ -107,15 +110,42 @@ export interface PatientMedicationOrder {
   admin_notes?: string
 }
 
+export interface PatientAppointment {
+  id: string
+  appointment_id: string
+  provider_id: string
+  provider_name: string
+  appointment_date: string
+  start_time: string
+  treatment_type: string
+  appointment_type: string
+  status: string
+  patient_notes?: string
+}
+
 export interface EnhancedPatientInformationDialogProps {
   patient: Patient | null
   medications?: PatientMedication[]
   preferredMedications?: PatientMedicationPreference[]
   medicationOrders?: PatientMedicationOrder[]
+  appointments?: PatientAppointment[]
   open: boolean
   onOpenChange: (open: boolean) => void
   isAdmin?: boolean
   onMedicationUpdate?: (medicationId: string, updates: Partial<PatientMedication>) => void
+  onRescheduleAppointment?: (appointmentData: {
+    appointmentId: string
+    appointmentDate: string
+    startTime: string
+  }) => Promise<{ success: boolean; message?: string }>
+  onGetAvailableSlots?: (
+    providerId: string,
+    startDate: string,
+    endDate: string,
+    treatmentType?: string
+  ) => Promise<{ data: any[]; error?: any }>
+  providers?: any[]
+  medicationPreferences?: any[]
   initialSection?: string
 }
 
@@ -124,10 +154,15 @@ export function EnhancedPatientInformationDialog({
   medications = [],
   preferredMedications = [],
   medicationOrders = [],
+  appointments = [],
   open,
   onOpenChange,
   isAdmin = false,
   onMedicationUpdate,
+  onRescheduleAppointment,
+  onGetAvailableSlots,
+  providers = [],
+  medicationPreferences = [],
   initialSection = "Information"
 }: EnhancedPatientInformationDialogProps) {
   const [isFullscreen, setIsFullscreen] = React.useState(false)
@@ -151,6 +186,10 @@ export function EnhancedPatientInformationDialog({
   const [orderShippedDate, setOrderShippedDate] = React.useState("")
   const [orderEstimatedDelivery, setOrderEstimatedDelivery] = React.useState("")
   const [orderAdminNotes, setOrderAdminNotes] = React.useState("")
+  
+  // Reschedule dialog state
+  const [rescheduleDialogOpen, setRescheduleDialogOpen] = React.useState(false)
+  const [selectedAppointment, setSelectedAppointment] = React.useState<PatientAppointment | null>(null)
 
   // Load selected medication data when changed
   React.useEffect(() => {
@@ -694,7 +733,7 @@ export function EnhancedPatientInformationDialog({
               </div>
               <div>
                 <Label className="text-sm font-medium">Order Date</Label>
-                <p>{new Date(selectedOrder.created_at).toLocaleDateString()}</p>
+                <p>{selectedOrder.payment_date ? new Date(selectedOrder.payment_date).toLocaleDateString() : 'Pending'}</p>
               </div>
               {selectedOrder.preference_id && (
                 <div>
@@ -996,7 +1035,7 @@ export function EnhancedPatientInformationDialog({
                   dosage={order.dosage}
                   supply={`Qty: ${order.quantity}`}
                   status={order.fulfillment_status}
-                  orderDate={new Date(order.created_at).toLocaleDateString()}
+                  orderDate={order.payment_date ? new Date(order.payment_date).toLocaleDateString() : 'Pending'}
                   orderNumber={`REF-${order.id.slice(0, 8)}`}
                   onClick={() => setSelectedOrder(order)}
                   className="w-full max-w-none cursor-pointer"
@@ -1007,6 +1046,52 @@ export function EnhancedPatientInformationDialog({
 
           <div className="text-sm text-muted-foreground">
             Click on any order card to view detailed payment and fulfillment information.
+          </div>
+        </div>
+      )
+    }
+
+    if (activeSection === "Visits") {
+      // Patient visits list view with reschedule capability using MedicationCard
+      return (
+        <div className="space-y-4">
+          {appointments.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No visits found for this patient.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {appointments.map((appointment) => (
+                <MedicationCard
+                  key={appointment.id}
+                  medicationName={appointment.provider_name}
+                  dosage={appointment.treatment_type?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                  supply={`${(() => {
+                    // Parse date safely to avoid timezone issues
+                    const [year, month, day] = appointment.appointment_date.split('-').map(Number)
+                    const date = new Date(year, month - 1, day) // month is 0-indexed
+                    return date.toLocaleDateString('en-US', {
+                      month: 'long',
+                      day: 'numeric',
+                      year: 'numeric'
+                    })
+                  })()} at ${appointment.start_time}`}
+                  status={appointment.status === 'scheduled' ? 'scheduled' : appointment.status}
+                  onTitleClick={isAdmin && appointment.status === 'scheduled' ? () => {
+                    setSelectedAppointment(appointment)
+                    setRescheduleDialogOpen(true)
+                  } : undefined}
+                  className="w-full max-w-none"
+                />
+              ))}
+            </div>
+          )}
+
+          <div className="text-sm text-muted-foreground">
+            {isAdmin 
+              ? "Click on the provider name to reschedule any scheduled visit for this patient."
+              : "View all scheduled and completed visits for this patient."
+            }
           </div>
         </div>
       )
@@ -1153,6 +1238,30 @@ export function EnhancedPatientInformationDialog({
           </main>
         </SidebarProvider>
       </DialogContent>
+      
+      {/* Reschedule Dialog */}
+      {selectedAppointment && (
+        <VisitsBookingDialog
+          open={rescheduleDialogOpen}
+          onOpenChange={setRescheduleDialogOpen}
+          patientProfileId={patient?.profile_id || ''}
+          medicationPreferences={medicationPreferences}
+          providers={providers}
+          onBookAppointment={async () => ({ success: false })} // Not used in reschedule mode
+          onGetAvailableSlots={onGetAvailableSlots || (async () => ({ data: [] }))}
+          isRescheduleMode={true}
+          existingAppointment={{
+            id: selectedAppointment.id,
+            providerId: selectedAppointment.provider_id,
+            providerName: selectedAppointment.provider_name,
+            appointmentDate: selectedAppointment.appointment_date,
+            startTime: selectedAppointment.start_time,
+            treatmentType: selectedAppointment.treatment_type,
+            appointmentType: selectedAppointment.appointment_type
+          }}
+          onRescheduleAppointment={onRescheduleAppointment}
+        />
+      )}
     </Dialog>
   )
 }

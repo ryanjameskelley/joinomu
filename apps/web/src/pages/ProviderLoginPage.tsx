@@ -1,30 +1,36 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { ProviderLoginForm, Button } from '@joinomu/ui'
-import { supabase } from '@/utils/supabase/client'
+import { LoginForm, Button } from '@joinomu/ui'
 import { authService } from '@joinomu/shared'
+
+interface LoginFormData {
+  email: string
+  password: string
+}
 
 export function ProviderLoginPage() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const handleLogin = async (email: string, password: string) => {
+  const handleLogin = async (data: LoginFormData) => {
     setLoading(true)
     setError('')
 
     try {
-      // Use the new auth service method for role-specific login
-      const { data, error: signInError } = await authService.signInProvider({
-        email,
-        password,
-      })
+      const { data: authData, error: signInError } = await authService.signIn(data)
 
       if (signInError) throw signInError
 
-      if (data.user) {
-        // Successful provider login - navigate to dashboard
-        navigate('/provider/dashboard')
+      if (authData.user) {
+        // Verify user role and redirect accordingly
+        const role = authData.user.user_metadata?.role
+        if (role === 'provider') {
+          navigate('/provider/dashboard')
+        } else {
+          setError('This login is for providers only')
+          await authService.signOut()
+        }
       }
     } catch (error: any) {
       setError(error.message || 'An error occurred during login')
@@ -34,9 +40,10 @@ export function ProviderLoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="max-w-md w-full">
-        <ProviderLoginForm 
+    <div className="min-h-screen flex items-center justify-center bg-background py-8">
+      <div className="max-w-2xl w-full">
+        <LoginForm 
+          userRole="provider"
           onSubmit={handleLogin}
           loading={loading}
           error={error}

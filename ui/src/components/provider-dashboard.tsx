@@ -56,7 +56,7 @@ export type Patient = {
   treatments: string[]
   medications: string[]
   status: string[]
-  treatmentType?: string // From patient_providers relationship
+  treatmentType?: string // From patient_assignments relationship
   assignedDate?: string
   isPrimary?: boolean
 }
@@ -148,9 +148,9 @@ function PatientTable({
 
   const fetchProviderPatients = async () => {
     try {
-      // Get patients assigned to this provider through patient_providers junction table
+      // Get patients assigned to this provider through patient_assignments junction table
       const { data: patientData, error } = await supabase
-        .from('patient_providers')
+        .from('patient_assignments')
         .select(`
           treatment_type,
           is_primary,
@@ -164,6 +164,7 @@ function PatientTable({
           )
         `)
         .eq('provider_id', providerId)
+        .eq('active', true)
 
       if (!error && patientData) {
         const transformedPatients: Patient[] = patientData.map((pp: any) => {

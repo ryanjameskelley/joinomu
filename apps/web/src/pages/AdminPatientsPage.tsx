@@ -30,6 +30,8 @@ export function AdminPatientsPage() {
   const [patientMedications, setPatientMedications] = useState<PatientMedication[]>([])
   const [patientPreferences, setPatientPreferences] = useState<any[]>([])
   const [patientOrders, setPatientOrders] = useState<any[]>([])
+  const [patientAppointments, setPatientAppointments] = useState<any[]>([])
+  const [providers, setProviders] = useState<any[]>([])
 
   useEffect(() => {
     // Redirect if not admin
@@ -108,9 +110,9 @@ export function AdminPatientsPage() {
   }
 
   // Fetch patient medication preferences from database
-  const fetchPatientPreferences = async (patientId: string) => {
+  const fetchPatientPreferences = async (profileId: string) => {
     try {
-      const { data, error } = await authService.getPatientMedicationPreferences(patientId)
+      const { data, error } = await authService.getPatientMedicationPreferences(profileId)
       
       if (error) {
         console.error('Error fetching medication preferences:', error)
@@ -137,6 +139,45 @@ export function AdminPatientsPage() {
       return data
     } catch (error) {
       console.error('Exception fetching medication orders:', error)
+      return []
+    }
+  }
+
+  // Fetch patient appointments from database
+  const fetchPatientAppointments = async (profileId: string) => {
+    try {
+      const { data, error } = await authService.getPatientAppointments(profileId, true)
+      
+      if (error) {
+        console.error('Error fetching patient appointments:', error)
+        return []
+      }
+
+      return data
+    } catch (error) {
+      console.error('Exception fetching patient appointments:', error)
+      return []
+    }
+  }
+
+  // Fetch all providers for reschedule functionality
+  const fetchProviders = async () => {
+    try {
+      const { data, error } = await authService.getAllProviders()
+      
+      if (error) {
+        console.error('Error fetching providers:', error)
+        return []
+      }
+
+      return data?.map(provider => ({
+        id: provider.id,
+        name: `${provider.first_name} ${provider.last_name}`,
+        specialty: provider.specialty,
+        profile_id: provider.profile_id
+      })) || []
+    } catch (error) {
+      console.error('Exception fetching providers:', error)
       return []
     }
   }
@@ -181,7 +222,7 @@ export function AdminPatientsPage() {
 
     // Fetch medication preferences and orders
     try {
-      const preferences = await fetchPatientPreferences(patient.id)
+      const preferences = await fetchPatientPreferences(patient.profile_id)
       setPatientPreferences(preferences)
       console.log('Loaded patient preferences:', preferences)
     } catch (error) {
@@ -196,6 +237,26 @@ export function AdminPatientsPage() {
     } catch (error) {
       console.error('Error loading medication orders:', error)
       setPatientOrders([])
+    }
+
+    // Fetch patient appointments
+    try {
+      const appointments = await fetchPatientAppointments(patient.profile_id)
+      setPatientAppointments(appointments)
+      console.log('Loaded patient appointments:', appointments)
+    } catch (error) {
+      console.error('Error loading patient appointments:', error)
+      setPatientAppointments([])
+    }
+
+    // Fetch providers for reschedule functionality
+    try {
+      const providersList = await fetchProviders()
+      setProviders(providersList)
+      console.log('Loaded providers for reschedule:', providersList)
+    } catch (error) {
+      console.error('Error loading providers:', error)
+      setProviders([])
     }
   }
 
@@ -259,6 +320,53 @@ export function AdminPatientsPage() {
   const handleSignOut = async () => {
     await authService.signOut()
     navigate('/')
+  }
+
+  const handleRescheduleAppointment = async (appointmentData: {
+    appointmentId: string
+    appointmentDate: string
+    startTime: string
+  }) => {
+    try {
+      const result = await authService.rescheduleAppointment(
+        appointmentData.appointmentId,
+        appointmentData.appointmentDate,
+        appointmentData.startTime,
+        'admin',
+        user?.id
+      )
+      
+      if (result.success) {
+        // Refresh appointments data
+        if (selectedPatient) {
+          const appointments = await fetchPatientAppointments(selectedPatient.profile_id)
+          setPatientAppointments(appointments)
+        }
+      }
+      
+      return result
+    } catch (error) {
+      console.error('Error rescheduling appointment:', error)
+      return { 
+        success: false, 
+        message: error instanceof Error ? error.message : 'Failed to reschedule appointment'
+      }
+    }
+  }
+
+  const handleGetAvailableSlots = async (
+    providerId: string,
+    startDate: string,
+    endDate: string,
+    treatmentType?: string
+  ) => {
+    try {
+      const result = await authService.getAvailableSlots(providerId, startDate, endDate, treatmentType)
+      return result
+    } catch (error) {
+      console.error('Error getting available slots:', error)
+      return { data: [], error }
+    }
   }
 
   if (userRole && userRole !== 'admin') {
@@ -335,10 +443,15 @@ export function AdminPatientsPage() {
         medications={patientMedications}
         preferredMedications={patientPreferences}
         medicationOrders={patientOrders}
+        appointments={patientAppointments}
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         isAdmin={true}
         onMedicationUpdate={handleMedicationUpdate}
+        onRescheduleAppointment={handleRescheduleAppointment}
+        onGetAvailableSlots={handleGetAvailableSlots}
+        providers={providers}
+        medicationPreferences={patientPreferences}
         initialSection="Information"
       />
     </SidebarProvider>
