@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { EnhancedPatientInformationDialog } from './enhanced-patient-information-dialog'
 import { MedicationPreferencesDialog, type MedicationOption } from './medication-preferences-dialog'
-import type { PatientMedication, PatientMedicationPreference, PatientMedicationOrder } from './enhanced-patient-information-dialog'
+import type { PatientMedication, PatientMedicationPreference, PatientMedicationOrder, PatientAppointment } from './enhanced-patient-information-dialog'
 import type { Patient } from './patient-table'
 
 const meta = {
@@ -215,6 +215,80 @@ const sampleMedicationOrders: PatientMedicationOrder[] = [
   }
 ]
 
+// Sample appointments data
+const sampleAppointments: PatientAppointment[] = [
+  {
+    id: 'appt_1',
+    appointment_id: '1dda6efb-6c80-46a8-88a7-1c09deba1fae',
+    provider_id: 'prov_123',
+    provider_name: 'Dr. Sarah Smith',
+    appointment_date: '2025-10-15',
+    start_time: '09:00:00',
+    treatment_type: 'weight_loss',
+    appointment_type: 'consultation',
+    status: 'scheduled',
+    patient_notes: 'Initial consultation for weight management'
+  },
+  {
+    id: 'appt_2', 
+    appointment_id: '2dda6efb-6c80-46a8-88a7-1c09deba2fae',
+    provider_id: 'prov_456',
+    provider_name: 'Dr. Michael Brown',
+    appointment_date: '2025-10-22',
+    start_time: '14:30:00',
+    treatment_type: 'weight_loss',
+    appointment_type: 'follow_up',
+    status: 'scheduled',
+    patient_notes: 'Follow-up appointment for dosage adjustment'
+  },
+  {
+    id: 'appt_3',
+    appointment_id: '3dda6efb-6c80-46a8-88a7-1c09deba3fae',
+    provider_id: 'prov_123',
+    provider_name: 'Dr. Sarah Smith',
+    appointment_date: '2025-09-25',
+    start_time: '11:00:00',
+    treatment_type: 'weight_loss',
+    appointment_type: 'consultation',
+    status: 'completed',
+    patient_notes: 'Completed initial consultation'
+  },
+  {
+    id: 'appt_4',
+    appointment_id: '4dda6efb-6c80-46a8-88a7-1c09deba4fae',
+    provider_id: 'prov_789',
+    provider_name: 'Dr. Jennifer Lee',
+    appointment_date: '2025-10-08',
+    start_time: '10:15:00',
+    treatment_type: 'mens_health',
+    appointment_type: 'consultation',
+    status: 'cancelled',
+    patient_notes: 'Cancelled due to scheduling conflict'
+  }
+]
+
+// Sample providers data
+const sampleProviders = [
+  {
+    id: 'prov_123',
+    name: 'Dr. Sarah Smith',
+    specialty: 'Weight Loss',
+    profile_id: 'prof_smith_123'
+  },
+  {
+    id: 'prov_456', 
+    name: 'Dr. Michael Brown',
+    specialty: 'Weight Loss',
+    profile_id: 'prof_brown_456'
+  },
+  {
+    id: 'prov_789',
+    name: 'Dr. Jennifer Lee', 
+    specialty: 'Mens Health',
+    profile_id: 'prof_lee_789'
+  }
+]
+
 // Information story - renamed from default
 export const Information: Story = {
   args: {
@@ -281,6 +355,42 @@ export const Orders: Story = {
     docs: {
       description: {
         story: 'Admin view of patient medication orders. Shows order dates, approval IDs, and fulfillment status.'
+      }
+    }
+  }
+}
+
+// Visits story - Admin view with patient appointments
+export const Visits: Story = {
+  args: {
+    patient: samplePatient,
+    appointments: sampleAppointments,
+    providers: sampleProviders,
+    medicationPreferences: samplePreferredMedications,
+    open: true,
+    isAdmin: true,
+    initialSection: "Visits",
+    onRescheduleAppointment: async (data) => {
+      console.log('Reschedule appointment:', data)
+      return { success: true, message: 'Appointment rescheduled successfully' }
+    },
+    onGetAvailableSlots: async (providerId, startDate, endDate, treatmentType) => {
+      console.log('Get available slots:', { providerId, startDate, endDate, treatmentType })
+      return {
+        data: [
+          { slot_date: startDate, slot_start_time: '09:00:00', slot_end_time: '09:30:00', duration_minutes: 30 },
+          { slot_date: startDate, slot_start_time: '10:00:00', slot_end_time: '10:30:00', duration_minutes: 30 },
+          { slot_date: startDate, slot_start_time: '11:00:00', slot_end_time: '11:30:00', duration_minutes: 30 },
+          { slot_date: startDate, slot_start_time: '14:00:00', slot_end_time: '14:30:00', duration_minutes: 30 },
+          { slot_date: startDate, slot_start_time: '15:00:00', slot_end_time: '15:30:00', duration_minutes: 30 }
+        ]
+      }
+    }
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Admin view of patient visits/appointments with reschedule functionality. Displays all appointments with status badges and allows admins to reschedule any scheduled appointment by clicking the "Reschedule" button.'
       }
     }
   }

@@ -140,13 +140,18 @@ export function PatientDashboard() {
           console.log(`🔍 Processing medication ${index}:`, med)
           console.log(`🔍 Raw medication_id field:`, med.medication_id)
           console.log(`🔍 All medication fields:`, Object.keys(med))
+          console.log(`🔍 Medications object:`, med.medications)
           return {
-            id: med.id,
+            id: med.id, // This is the preference ID
             medicationId: med.medication_id, // Keep the original medication ID for lookup
-            name: med.medication_name || 'Unknown Medication',
+            name: med.medications?.name || 'Unknown Medication',
             dosage: med.preferred_dosage || 'Not specified',
             supply: med.frequency || '30 day supply',
-            status: med.status || 'pending'
+            status: med.status || 'pending',
+            // Add additional fields for editing
+            preferenceId: med.id,
+            medicationInfo: med.medications,
+            dosageInfo: med.medication_dosages
           }
         })
         console.log('✅ Final medication cards to display:', medicationCards)
@@ -181,14 +186,14 @@ export function PatientDashboard() {
           console.log(`🔍 Final providerId for appointment ${index}:`, providerId)
           
           const appointmentCard = {
-            id: appointment.appointment_id, // Use appointment_id field from database
+            id: appointment.id, // Use id field from database
             doctorName: appointment.provider_name || 'Healthcare Provider',
             visitType: appointment.appointment_type || 'Initial Consultation',
             dateTime: `${appointment.appointment_date} at ${appointment.start_time}`,
             status: appointment.status || 'scheduled',
             appointmentDate: appointment.appointment_date,
             startTime: appointment.start_time,
-            providerId: providerId,
+            providerId: appointment.provider_id || providerId, // Use provider_id from database first
             treatmentType: appointment.treatment_type || 'weight_loss',
             appointmentType: appointment.appointment_type || 'consultation'
           }
@@ -236,9 +241,35 @@ export function PatientDashboard() {
         // Fetch available medications from Supabase
         const result = await authService.getAvailableMedications()
         console.log('🔍 Medications result:', result)
-        if (result.data) {
+        console.log('🔍 Raw result.data:', JSON.stringify(result.data, null, 2))
+        
+        if (result.data && result.data.length > 0) {
           console.log('✅ Setting medications:', result.data)
-          setAvailableMedications(result.data)
+          console.log('🔍 First medication sample:', result.data[0])
+          console.log('🔍 First medication dosages:', result.data[0]?.medication_dosages)
+          
+          // Transform database data to match MedicationOption interface
+          const transformedMedications = result.data.map((med, index) => {
+            console.log(`🔍 Transforming medication ${index}:`, med.name)
+            console.log(`🔍 Medication ${index} dosages:`, med.medication_dosages)
+            
+            const dosages = med.medication_dosages?.map(dosage => {
+              console.log(`🔍 Processing dosage:`, dosage)
+              return dosage.strength
+            }) || []
+            
+            console.log(`🔍 Final dosages for ${med.name}:`, dosages)
+            
+            return {
+              id: med.id,
+              name: `${med.name} (${med.brand_name})`,
+              description: med.description,
+              category: med.category,
+              available_dosages: dosages
+            }
+          })
+          console.log('✅ Transformed medications:', transformedMedications)
+          setAvailableMedications(transformedMedications)
         } else {
           console.log('❌ No medications data received:', result.error)
         }
@@ -394,17 +425,23 @@ export function PatientDashboard() {
     console.log('Edit medication clicked', medicationId)
     
     if (medicationId) {
-      // Edit specific medication
+      // Edit specific medication preference
       const medicationToEdit = realMedicationData.find(med => med.id === medicationId)
       console.log('🔍 PatientDashboard: medicationToEdit found:', medicationToEdit)
       if (medicationToEdit) {
         const editingData = {
-          id: medicationToEdit.id,
-          medicationId: medicationToEdit.medicationId, // Pass the actual medication ID for lookup
+          id: medicationToEdit.id, // This is the preference ID
+          preferenceId: medicationToEdit.preferenceId, // Preference ID for updates
+          medicationId: medicationToEdit.medicationId, // The actual medication ID for lookup
           medicationName: medicationToEdit.name,
-          dosage: medicationToEdit.dosage
+          dosage: medicationToEdit.dosage,
+          frequency: medicationToEdit.supply,
+          status: medicationToEdit.status,
+          // Include the full medication info for the dialog
+          medicationInfo: medicationToEdit.medicationInfo,
+          dosageInfo: medicationToEdit.dosageInfo
         }
-        console.log('🔍 PatientDashboard: Setting editingMedication:', editingData)
+        console.log('🔍 PatientDashboard: Setting editingMedication for preference:', editingData)
         setEditingMedication(editingData)
       }
     } else {
@@ -420,8 +457,38 @@ export function PatientDashboard() {
     try {
       console.log('🔄 Loading medications for dialog...')
       const result = await authService.getAvailableMedications()
-      if (result.data) {
-        setAvailableMedications(result.data)
+      console.log('🔍 Edit mode medications result:', result)
+      console.log('🔍 Edit mode raw result.data:', JSON.stringify(result.data, null, 2))
+      
+      if (result.data && result.data.length > 0) {
+        console.log('✅ Edit mode: Setting medications:', result.data)
+        console.log('🔍 Edit mode: First medication sample:', result.data[0])
+        console.log('🔍 Edit mode: First medication dosages:', result.data[0]?.medication_dosages)
+        
+        // Transform database data to match MedicationOption interface (same as in checklist handler)
+        const transformedMedications = result.data.map((med, index) => {
+          console.log(`🔍 Edit mode: Transforming medication ${index}:`, med.name)
+          console.log(`🔍 Edit mode: Medication ${index} dosages:`, med.medication_dosages)
+          
+          const dosages = med.medication_dosages?.map(dosage => {
+            console.log(`🔍 Edit mode: Processing dosage:`, dosage)
+            return dosage.strength
+          }) || []
+          
+          console.log(`🔍 Edit mode: Final dosages for ${med.name}:`, dosages)
+          
+          return {
+            id: med.id,
+            name: `${med.name} (${med.brand_name})`,
+            description: med.description,
+            category: med.category,
+            available_dosages: dosages
+          }
+        })
+        console.log('✅ Edit mode: Transformed medications:', transformedMedications)
+        setAvailableMedications(transformedMedications)
+      } else {
+        console.log('❌ Edit mode: No medications data received:', result.error)
       }
       setMedicationDialogOpen(true)
     } catch (error) {
@@ -538,11 +605,11 @@ export function PatientDashboard() {
       } else {
         // Create new preference 
         console.log('🔄 Creating new medication preference (will be pending for provider review)')
-        result = await authService.createMedicationPreference(
-          user.id, 
-          preferences.medicationId, 
-          preferences.dosage
-        )
+        result = await authService.createMedicationPreference({
+          medicationId: preferences.medicationId,
+          dosage: preferences.dosage,
+          userId: user.id
+        })
       }
       
       if (result.success) {
@@ -593,11 +660,11 @@ export function PatientDashboard() {
     setMedicationLoading(true)
     try {
       console.log('🔄 Adding additional medication preference')
-      const result = await authService.createMedicationPreference(
-        user.id, 
-        preferences.medicationId, 
-        preferences.dosage
-      )
+      const result = await authService.createMedicationPreference({
+        medicationId: preferences.medicationId,
+        dosage: preferences.dosage,
+        userId: user.id
+      })
       
       if (result.success) {
         console.log('✅ Additional medication preference added successfully')

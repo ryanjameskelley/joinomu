@@ -1,5 +1,6 @@
 // Auth service and core functionality
-export { AuthService, authService } from './auth-service.js'
+export { authService } from './auth-service.js'
+export type { UserRole } from './auth-service.js'
 
 // Auth provider and context
 export { AuthProvider, useAuth } from './auth-provider.js'

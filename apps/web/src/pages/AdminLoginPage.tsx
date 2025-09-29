@@ -1,26 +1,36 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { AdminLoginForm, Button } from '@joinomu/ui'
+import { useNavigate, Link } from 'react-router-dom'
+import { LoginForm, Button } from '@joinomu/ui'
 import { authService } from '@joinomu/shared'
+
+interface LoginFormData {
+  email: string
+  password: string
+}
 
 export function AdminLoginPage() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const handleLogin = async (email: string, password: string) => {
+  const handleLogin = async (data: LoginFormData) => {
     setLoading(true)
     setError('')
 
     try {
-      const result = await authService.signInAdmin({ email, password })
-      
-      if (result.error) {
-        setError(result.error.message)
-      } else if (result.data?.user) {
-        // Successful admin login - navigate to admin dashboard
-        console.log('✅ Admin login successful, redirecting to dashboard')
-        navigate('/admin/dashboard')
+      const { data: authData, error: signInError } = await authService.signIn(data)
+
+      if (signInError) throw signInError
+
+      if (authData.user) {
+        // Verify user role and redirect accordingly
+        const role = authData.user.user_metadata?.role
+        if (role === 'admin') {
+          navigate('/admin/dashboard')
+        } else {
+          setError('This login is for admins only')
+          await authService.signOut()
+        }
       }
     } catch (error: any) {
       setError(error.message || 'An error occurred during login')
@@ -30,23 +40,20 @@ export function AdminLoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="max-w-md w-full">
-        <AdminLoginForm 
+    <div className="min-h-screen flex items-center justify-center bg-background py-8">
+      <div className="max-w-2xl w-full">
+        <LoginForm 
+          userRole="admin"
           onSubmit={handleLogin}
           loading={loading}
           error={error}
+          showSignupLink={true}
+          signupLink="/admin/signup"
         />
-        <div className="mt-4 text-center space-y-2">
+        <div className="mt-4 text-center">
           <Button asChild variant="ghost" size="sm">
             <Link to="/">← Back to Home</Link>
           </Button>
-          <div className="text-sm text-muted-foreground">
-            Need admin access?{" "}
-            <Link to="/admin/signup" className="underline underline-offset-4 hover:text-foreground">
-              Request Account
-            </Link>
-          </div>
         </div>
       </div>
     </div>

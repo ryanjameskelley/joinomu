@@ -1,99 +1,132 @@
-#!/usr/bin/env node
+const { createClient } = require('@supabase/supabase-js')
 
-/**
- * Fix the auth trigger by testing and potentially recreating it
- */
-
-import { createClient } from '@supabase/supabase-js'
-
-const supabaseUrl = 'http://127.0.0.1:54321'
-const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU'
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
-  }
-})
-
-async function fixAuthTrigger() {
-  console.log('🔧 Investigating auth trigger issue...')
+async function createMigration() {
+  console.log('🔧 Creating migration to fix auth trigger...')
   
-  try {
-    // Test if the trigger works by creating a test user
-    const testEmail = `trigger.test.${Date.now()}@example.com`
+  const migrationSQL = `-- Create the auth trigger function for automatic user creation
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER
+SECURITY DEFINER
+SET search_path = public
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  user_role TEXT DEFAULT 'patient';
+  first_name TEXT DEFAULT 'User';
+  last_name TEXT DEFAULT 'Unknown';
+  phone_val TEXT;
+  specialty_val TEXT;
+  license_number_val TEXT;
+  new_provider_id UUID;
+  schedule_days TEXT[] := ARRAY['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+  day_name TEXT;
+BEGIN
+  -- Extract user metadata safely
+  user_role := COALESCE(
+    NEW.raw_user_meta_data->>'role',
+    NEW.user_metadata->>'role',
+    'patient'
+  );
+  
+  first_name := COALESCE(
+    NEW.raw_user_meta_data->>'first_name',
+    NEW.raw_user_meta_data->>'firstName',
+    NEW.user_metadata->>'first_name',
+    NEW.user_metadata->>'firstName',
+    'User'
+  );
+  
+  last_name := COALESCE(
+    NEW.raw_user_meta_data->>'last_name',
+    NEW.raw_user_meta_data->>'lastName',
+    NEW.user_metadata->>'last_name',
+    NEW.user_metadata->>'lastName',
+    'Unknown'
+  );
+  
+  phone_val := COALESCE(
+    NEW.raw_user_meta_data->>'phone',
+    NEW.user_metadata->>'phone'
+  );
+  
+  specialty_val := COALESCE(
+    NEW.raw_user_meta_data->>'specialty',
+    NEW.user_metadata->>'specialty',
+    'General Practice'
+  );
+  
+  license_number_val := COALESCE(
+    NEW.raw_user_meta_data->>'licenseNumber',
+    NEW.raw_user_meta_data->>'license_number',
+    NEW.user_metadata->>'licenseNumber',
+    NEW.user_metadata->>'license_number'
+  );
+
+  -- Create profile record
+  INSERT INTO public.profiles (
+    id, email, first_name, last_name, role, created_at, updated_at
+  ) VALUES (
+    NEW.id, NEW.email, first_name, last_name, user_role, NOW(), NOW()
+  );
+
+  -- Create role-specific records
+  IF user_role = 'patient' THEN
+    INSERT INTO public.patients (profile_id, phone, has_completed_intake, created_at, updated_at)
+    VALUES (NEW.id, phone_val, false, NOW(), NOW());
     
-    console.log('1️⃣ Creating test user to check trigger:', testEmail)
-    const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
-      email: testEmail,
-      password: 'testpassword123',
-      email_confirm: true,
-      user_metadata: {
-        role: 'patient',
-        firstName: 'TriggerTest',
-        lastName: 'User'
-      }
-    })
+  ELSIF user_role = 'provider' THEN
+    INSERT INTO public.providers (profile_id, specialty, license_number, phone, active, created_at, updated_at)
+    VALUES (NEW.id, specialty_val, license_number_val, phone_val, true, NOW(), NOW())
+    RETURNING id INTO new_provider_id;
     
-    if (authError) {
-      console.error('❌ Error creating test user:', authError)
-      return
-    }
+    -- Create provider schedule
+    IF new_provider_id IS NOT NULL THEN
+      FOREACH day_name IN ARRAY schedule_days LOOP
+        INSERT INTO public.provider_schedules (
+          provider_id, day_of_week, start_time, end_time, treatment_types, created_at, updated_at
+        ) VALUES (
+          new_provider_id, day_name, '09:00:00', '17:00:00', 
+          ARRAY['weight_loss', 'diabetes_management'], NOW(), NOW()
+        );
+      END LOOP;
+    END IF;
     
-    console.log('✅ Test user created:', authUser.user.id)
-    
-    // Wait for trigger to process
-    console.log('2️⃣ Waiting for trigger to process...')
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    
-    // Check if profile was created
-    console.log('3️⃣ Checking if trigger created profile...')
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', authUser.user.id)
-      .single()
-    
-    if (profileError || !profile) {
-      console.log('❌ TRIGGER NOT WORKING - Profile not created automatically')
-      console.log('Profile error:', profileError)
-      
-      // Manually create profile for this test user
-      console.log('4️⃣ Manually creating profile for test user...')
-      const { data: manualProfile, error: manualError } = await supabase
-        .from('profiles')
-        .insert({
-          id: authUser.user.id,
-          email: authUser.user.email,
-          first_name: authUser.user.user_metadata?.firstName || 'Test',
-          last_name: authUser.user.user_metadata?.lastName || 'User',
-          role: authUser.user.user_metadata?.role || 'patient',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .select()
-      
-      if (manualError) {
-        console.error('Error manually creating profile:', manualError)
-      } else {
-        console.log('✅ Manually created profile:', manualProfile)
-      }
-      
-      console.log('\n⚠️ CONCLUSION: Auth trigger is NOT working properly')
-      console.log('📋 RECOMMENDATION: Profiles need to be created manually or trigger needs to be fixed')
-      
-    } else {
-      console.log('✅ TRIGGER IS WORKING - Profile created automatically:', profile)
-      console.log('\n🎉 CONCLUSION: Auth trigger is working correctly')
-    }
-    
-    // Cleanup test user
-    console.log('🧹 Cleaning up test user...')
-    await supabase.auth.admin.deleteUser(authUser.user.id)
-    
-  } catch (error) {
-    console.error('❌ Error testing auth trigger:', error)
-  }
+  ELSIF user_role = 'admin' THEN
+    INSERT INTO public.admins (profile_id, permissions, created_at, updated_at)
+    VALUES (NEW.id, 'full', NOW(), NOW());
+  END IF;
+
+  RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+  RAISE WARNING 'Auth trigger error: %', SQLERRM;
+  RETURN NEW;
+END;
+$$;
+
+-- Drop existing trigger if it exists
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+
+-- Create the trigger
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_new_user();
+
+-- Grant permissions
+GRANT EXECUTE ON FUNCTION public.handle_new_user() TO anon;
+GRANT EXECUTE ON FUNCTION public.handle_new_user() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.handle_new_user() TO service_role;`
+
+  console.log('✅ Migration SQL prepared')
+  console.log('\n📋 STEPS TO FIX AUTH:')
+  console.log('1. Create new migration:')
+  console.log('   supabase migration new fix_auth_trigger')
+  console.log('\n2. Copy the SQL above into the new migration file')
+  console.log('\n3. Apply the migration:')
+  console.log('   supabase db push')
+  console.log('\n4. Test user creation in your webapp')
+  
+  return migrationSQL
 }
 
-fixAuthTrigger()
+createMigration().catch(console.error)

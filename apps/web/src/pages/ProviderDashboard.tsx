@@ -35,31 +35,21 @@ export function ProviderDashboard() {
           return
         }
 
-        // Get provider profile and provider details
-        const { data: profileData } = await authService.getUserProfile(user.id)
-        const { data: providerData } = await authService.getRoleData(user.id, 'provider')
+        // Get combined provider and profile data
+        const { data: providerData, error: providerError } = await authService.getUserProfile()
 
-        if (profileData && providerData) {
-          const currentProviderData = {
-            id: providerData.id,
-            profile_id: user.id,
-            first_name: profileData.first_name,
-            last_name: profileData.last_name,
-            email: profileData.email,
-            specialty: providerData.specialty,
-            license_number: providerData.license_number,
-            phone: providerData.phone,
-            active: providerData.active
-          }
-          setProviderData(currentProviderData)
+        if (providerData && !providerError) {
+          setProviderData(providerData)
         } else {
+          console.warn('Provider data not found:', providerError)
           // Fallback if no data found
           const fallbackData = {
             id: 'provider-' + user.id,
             profile_id: user.id,
             first_name: 'Provider',
             last_name: 'User',
-            email: user.email
+            email: user.email,
+            specialty: 'General Practice'
           }
           setProviderData(fallbackData)
         }
@@ -87,7 +77,7 @@ export function ProviderDashboard() {
                   phone: patient.phone,
                   date_of_birth: patient.date_of_birth,
                   has_completed_intake: patient.has_completed_intake,
-                  careTeam: [`Dr. ${profileData?.first_name || 'Provider'} ${profileData?.last_name || 'User'}`],
+                  careTeam: [`Dr. ${providerData?.first_name || 'Provider'} ${providerData?.last_name || 'User'}`],
                   treatments: [patient.treatment_type?.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) || 'General Care'],
                   medications: patient.medications || [],
                   status: ['Active'],
@@ -176,26 +166,16 @@ export function ProviderDashboard() {
       console.log('🔍 Medication preferences result:', medicationResult)
       const { data: medicationPreferences } = medicationResult
       
-      // Fetch patient appointments (visits) - need to get profile_id first
+      // Fetch patient appointments (visits) using the profile_id from patient data
       console.log('🔍 Fetching patient appointments for visits...')
+      console.log('🔍 Patient object:', patient)
+      console.log('🔍 Available patient.profile_id:', patient.profile_id)
+      
       let visits: any[] = []
       try {
-        // First, get the patient's profile_id from the patients table
-        const patientRecord = await fetch(`http://127.0.0.1:54321/rest/v1/patients?id=eq.${patient.id}&select=profile_id`, {
-          headers: {
-            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0',
-            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0`
-          }
-        })
-        const patientData = await patientRecord.json()
-        
-        let patientProfileId = patient.id // fallback
-        if (patientData && patientData.length > 0) {
-          patientProfileId = patientData[0].profile_id
-          console.log('🔍 Found patient profile_id:', patientProfileId)
-        } else {
-          console.log('🔍 No profile_id found, using patient id:', patient.id)
-        }
+        // Use the profile_id that's already available from the patient data
+        const patientProfileId = patient.profile_id
+        console.log('🔍 Using patient.profile_id for appointments:', patientProfileId)
         
         const appointmentsResult = await authService.getPatientAppointments(patientProfileId, true)
         console.log('🔍 Patient appointments result:', appointmentsResult)
@@ -283,8 +263,8 @@ export function ProviderDashboard() {
       // Show saving toast
       savingToastId = MedicationToast.saving('medication preference')
       
-      // Update the medication preference
-      const result = await authService.updateMedicationPreference(medicationId, updates)
+      // Update the medication preference (pass provider ID for approval/order creation)
+      const result = await authService.updateMedicationPreference(medicationId, updates, providerData?.id)
       
       if (savingToastId) {
         dismissToast(savingToastId)

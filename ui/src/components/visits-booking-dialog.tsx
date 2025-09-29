@@ -161,7 +161,23 @@ export function VisitsBookingDialog({
     const originalDateStr = existingAppointment.appointmentDate
     const originalTimeStr = existingAppointment.startTime.slice(0, 5)
     
-    return selectedDateStr !== originalDateStr || selectedTime !== originalTimeStr
+    // Require either date OR time to be different from original appointment
+    // This ensures user must select a different provider time slot
+    const dateChanged = selectedDateStr !== originalDateStr
+    const timeChanged = selectedTime !== originalTimeStr
+    const hasChanged = dateChanged || timeChanged
+    
+    console.log('🔍 Appointment change check:', {
+      selectedDate: selectedDateStr,
+      originalDate: originalDateStr,
+      selectedTime,
+      originalTime: originalTimeStr,
+      dateChanged,
+      timeChanged,
+      hasChanged
+    })
+    
+    return hasChanged
   }, [isRescheduleMode, existingAppointment, date, selectedTime])
 
   // Create medication-provider combinations (smart matching)

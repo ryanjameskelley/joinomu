@@ -4,9 +4,12 @@ import { Button } from '@joinomu/ui'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from 'sonner'
 import { AuthProvider, useAuth } from '@/hooks/useAuth'
-import { LoginPage } from '@/components/LoginPage'
-import { SignupPage } from '@/components/SignupPage'
-import { DebugSignupPage } from '@/components/DebugSignupPage'
+import { PatientLoginPage } from '@/pages/PatientLoginPage'
+import { PatientSignupPage } from '@/pages/PatientSignupPage'
+import { ProviderLoginPage } from '@/pages/ProviderLoginPage'
+import { ProviderSignupPage } from '@/pages/ProviderSignupPage'
+import { AdminLoginPage } from '@/pages/AdminLoginPage'
+import { AdminSignupPage } from '@/pages/AdminSignupPage'
 import { AdminDashboard } from '@/pages/AdminDashboard'
 import { ProviderDashboard } from '@/pages/ProviderDashboard'
 import { PatientDashboard } from '@/components/PatientDashboard'
@@ -30,7 +33,7 @@ function LandingPage() {
           navigate('/provider/dashboard', { replace: true })
           break
         case 'patient':
-          navigate('/dashboard', { replace: true })
+          navigate('/patient/dashboard', { replace: true })
           break
       }
     } else if (!loading && user && !userRole) {
@@ -68,12 +71,30 @@ function LandingPage() {
         <h1 className="text-3xl font-bold text-center">JoinOmu Health Platform</h1>
         
         <div className="space-y-4">
-          <Button asChild className="w-full" size="lg">
-            <Link to="/login">Sign In</Link>
-          </Button>
-          <Button asChild variant="outline" className="w-full" size="lg">
-            <Link to="/signup">Create Account</Link>
-          </Button>
+          <div className="grid grid-cols-3 gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link to="/patient/login">Patient</Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/provider/login">Provider</Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/admin/login">Admin</Link>
+            </Button>
+          </div>
+          <p className="text-center text-xs text-muted-foreground">Choose your portal to sign in</p>
+          
+          <div className="grid grid-cols-3 gap-2">
+            <Button asChild variant="secondary" size="sm">
+              <Link to="/patient/signup">Patient Signup</Link>
+            </Button>
+            <Button asChild variant="secondary" size="sm">
+              <Link to="/provider/signup">Provider Signup</Link>
+            </Button>
+            <Button asChild variant="secondary" size="sm">
+              <Link to="/admin/signup">Admin Signup</Link>
+            </Button>
+          </div>
         </div>
         
         <p className="text-center text-sm text-muted-foreground">
@@ -98,7 +119,7 @@ function ProtectedRoute({
   React.useEffect(() => {
     if (!loading && !isSigningOut) {
       if (!user) {
-        navigate('/login', { replace: true })
+        navigate('/patient/login', { replace: true })
       } else if (requiredRole && userRole !== requiredRole) {
         // Redirect to appropriate dashboard if user has wrong role
         switch (userRole) {
@@ -109,10 +130,10 @@ function ProtectedRoute({
             navigate('/provider/dashboard', { replace: true })
             break
           case 'patient':
-            navigate('/dashboard', { replace: true })
+            navigate('/patient/dashboard', { replace: true })
             break
           default:
-            navigate('/login', { replace: true })
+            navigate('/patient/login', { replace: true })
         }
       }
     }
@@ -149,11 +170,24 @@ function App() {
       <AuthProvider>
         <Routes>
           <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignupPage />} />
-          <Route path="/debug-signup" element={<DebugSignupPage />} />
+          
+          {/* Auth Routes */}
+          <Route path="/patient/login" element={<PatientLoginPage />} />
+          <Route path="/patient/signup" element={<PatientSignupPage />} />
+          <Route path="/provider/login" element={<ProviderLoginPage />} />
+          <Route path="/provider/signup" element={<ProviderSignupPage />} />
+          <Route path="/admin/login" element={<AdminLoginPage />} />
+          <Route path="/admin/signup" element={<AdminSignupPage />} />
           
           {/* Patient Routes */}
+          <Route 
+            path="/patient/dashboard" 
+            element={
+              <ProtectedRoute requiredRole="patient">
+                <PatientDashboard />
+              </ProtectedRoute>
+            } 
+          />
           <Route 
             path="/dashboard" 
             element={
@@ -216,12 +250,11 @@ function App() {
           />
 
           {/* Legacy route redirects for backward compatibility */}
-          <Route path="/patient-login" element={<LoginPage />} />
-          <Route path="/admin-login" element={<LoginPage />} />
-          <Route path="/provider/login" element={<LoginPage />} />
-          <Route path="/patient-signup" element={<SignupPage />} />
-          <Route path="/admin/signup" element={<SignupPage />} />
-          <Route path="/provider/signup" element={<SignupPage />} />
+          <Route path="/login" element={<PatientLoginPage />} />
+          <Route path="/signup" element={<PatientSignupPage />} />
+          <Route path="/patient-login" element={<PatientLoginPage />} />
+          <Route path="/admin-login" element={<AdminLoginPage />} />
+          <Route path="/patient-signup" element={<PatientSignupPage />} />
         </Routes>
         <Toaster 
           position="bottom-right"
