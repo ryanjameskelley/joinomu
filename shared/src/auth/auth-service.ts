@@ -204,11 +204,13 @@ class AuthService {
       console.log('🔍 Found patient table ID:', patientData.id)
 
       // Get medication preferences with full medication and dosage information
+      console.log('🔍 Querying patient_medication_preferences for patient_id:', patientData.id)
+      
       const { data, error } = await supabase
         .from('patient_medication_preferences')
         .select(`
           *,
-          medications!inner (
+          medications (
             id,
             name,
             description,
@@ -224,6 +226,8 @@ class AuthService {
         `)
         .eq('patient_id', patientData.id)
         .order('created_at', { ascending: false })
+      
+      console.log('🔍 Query completed. Data:', data, 'Error:', error)
 
       if (error) {
         console.log('❌ Error fetching medication preferences:', error)
