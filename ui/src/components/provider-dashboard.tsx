@@ -44,6 +44,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from './select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './tabs'
+import { MedicationCard } from './medication-card'
+import { authService } from '@joinomu/shared'
 
 // Import Supabase client
 import { supabase } from '@joinomu/shared'
@@ -59,6 +62,29 @@ export type Patient = {
   treatmentType?: string // From patient_assignments relationship
   assignedDate?: string
   isPrimary?: boolean
+}
+
+export type MedicationPreference = {
+  id: string
+  patient_id: string
+  patient_name: string
+  medication_name: string
+  preferred_dosage: string
+  frequency: string
+  status: 'pending' | 'approved' | 'denied'
+  requested_date: string
+  notes?: string
+}
+
+export type ProviderVisit = {
+  id: string
+  patient_id: string
+  patient_name: string
+  provider_name: string
+  appointment_date: string
+  start_time: string
+  treatment_type: string
+  status: 'scheduled' | 'confirmed' | 'completed' | 'cancelled'
 }
 
 // Sample patient data (this will be replaced with real Supabase data)
@@ -117,6 +143,257 @@ function TagList({ items, variant = "secondary" }: { items: string[], variant?: 
           {item}
         </Badge>
       ))}
+    </div>
+  )
+}
+
+function ProviderApprovals({ 
+  providerId,
+  assignedPatients,
+  onApprovalAction,
+  onMedicationClick,
+  onCountChange
+}: { 
+  providerId?: string
+  assignedPatients?: Patient[]
+  onApprovalAction?: (preferenceId: string, action: 'approve' | 'deny') => void
+  onMedicationClick?: (preference: MedicationPreference) => void
+  onCountChange?: (count: number) => void
+}) {
+  const [preferences, setPreferences] = React.useState<MedicationPreference[]>([])
+  const [loading, setLoading] = React.useState(true)
+
+  React.useEffect(() => {
+    if (providerId && assignedPatients) {
+      fetchPendingApprovals()
+    }
+  }, [providerId, assignedPatients])
+
+  React.useEffect(() => {
+    onCountChange?.(preferences.length)
+  }, [preferences.length, onCountChange])
+
+  const fetchPendingApprovals = async () => {
+    try {
+      if (!assignedPatients || assignedPatients.length === 0) {
+        console.log('🔍 No assigned patients for approvals fetch')
+        setPreferences([])
+        setLoading(false)
+        return
+      }
+
+      console.log('🔍 Fetching approvals for assigned patients:', assignedPatients.map(p => ({ id: p.id, name: p.name, profile_id: p.profile_id })))
+
+      // Fetch medication preferences for all assigned patients
+      const allPreferences: MedicationPreference[] = []
+      
+      for (const patient of assignedPatients) {
+        try {
+          console.log(`🔍 Fetching preferences for patient: ${patient.name} (profile_id: ${patient.profile_id})`)
+          // Use the patient's profile_id to fetch their medication preferences
+          const result = await authService.getPatientMedicationPreferences(patient.profile_id)
+          console.log(`🔍 Raw preferences result for ${patient.name}:`, result)
+          
+          if (result.data && result.data.length > 0) {
+            console.log(`🔍 All preferences for ${patient.name}:`, result.data.map(p => ({ id: p.id, medication: p.medication_name, status: p.status })))
+            
+            // Filter for pending preferences only and transform to our interface
+            const pendingPreferences = result.data
+              .filter(pref => {
+                console.log(`🔍 Checking preference ${pref.medication_name}: status = ${pref.status}`)
+                return pref.status === 'pending'
+              })
+              .map(pref => ({
+                id: pref.id,
+                patient_id: patient.id,
+                patient_name: patient.name,
+                medication_name: pref.medication_name,
+                preferred_dosage: pref.preferred_dosage,
+                frequency: pref.frequency || 'As needed',
+                status: pref.status as 'pending' | 'approved' | 'denied',
+                requested_date: pref.requested_date,
+                notes: pref.notes
+              }))
+            
+            console.log(`🔍 Pending preferences for ${patient.name}:`, pendingPreferences)
+            allPreferences.push(...pendingPreferences)
+          } else {
+            console.log(`🔍 No preferences found for ${patient.name}`)
+          }
+        } catch (patientError) {
+          console.warn(`❌ Error fetching preferences for patient ${patient.name}:`, patientError)
+        }
+      }
+      
+      console.log('✅ Final pending approvals for assigned patients:', allPreferences)
+      setPreferences(allPreferences)
+    } catch (error) {
+      console.error('❌ Error fetching pending approvals:', error)
+      setPreferences([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleApprovalAction = async (preferenceId: string, action: 'approve' | 'deny') => {
+    try {
+      await onApprovalAction?.(preferenceId, action)
+      // Remove from local state as it's no longer pending
+      setPreferences(prev => prev.filter(p => p.id !== preferenceId))
+    } catch (error) {
+      console.error('Error handling approval action:', error)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <p>Loading approvals...</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      {preferences.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground">
+          No pending approvals at this time.
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {preferences.map((preference) => (
+            <MedicationCard
+              key={preference.id}
+              medicationName={preference.medication_name}
+              dosage={preference.preferred_dosage}
+              supply={preference.frequency}
+              status={preference.status}
+              orderNumber={`${preference.patient_name}`}
+              onTitleClick={() => onMedicationClick?.(preference)}
+              className="w-full max-w-none cursor-pointer"
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ProviderVisits({ 
+  providerId,
+  assignedPatients,
+  onVisitClick,
+  onCountChange
+}: { 
+  providerId?: string
+  assignedPatients?: Patient[]
+  onVisitClick?: (visit: ProviderVisit) => void
+  onCountChange?: (count: number) => void
+}) {
+  const [visits, setVisits] = React.useState<ProviderVisit[]>([])
+  const [loading, setLoading] = React.useState(true)
+
+  React.useEffect(() => {
+    if (providerId && assignedPatients) {
+      fetchProviderVisits()
+    }
+  }, [providerId, assignedPatients])
+
+  React.useEffect(() => {
+    onCountChange?.(visits.length)
+  }, [visits.length, onCountChange])
+
+  const fetchProviderVisits = async () => {
+    try {
+      if (!assignedPatients || assignedPatients.length === 0) {
+        setVisits([])
+        setLoading(false)
+        return
+      }
+
+      // Fetch appointments for all assigned patients
+      const allVisits: ProviderVisit[] = []
+      
+      for (const patient of assignedPatients) {
+        try {
+          // Use the patient's profile_id to fetch their appointments
+          const result = await authService.getPatientAppointments(patient.profile_id, true)
+          if (result.data && result.data.length > 0) {
+            // Transform appointments to ProviderVisit format
+            const patientVisits = result.data.map(appt => ({
+              id: appt.appointment_id || appt.id,
+              patient_id: patient.id,
+              patient_name: patient.name,
+              provider_name: 'Dr. Provider', // TODO: Get actual provider name
+              appointment_date: appt.appointment_date,
+              start_time: appt.start_time,
+              treatment_type: appt.treatment_type || patient.treatmentType || 'consultation',
+              status: appt.status as 'scheduled' | 'confirmed' | 'completed' | 'cancelled'
+            }))
+            
+            allVisits.push(...patientVisits)
+          }
+        } catch (patientError) {
+          console.warn(`Error fetching appointments for patient ${patient.name}:`, patientError)
+        }
+      }
+      
+      // Sort visits by appointment date and time (most recent first)
+      allVisits.sort((a, b) => {
+        const dateCompare = new Date(b.appointment_date).getTime() - new Date(a.appointment_date).getTime()
+        if (dateCompare === 0) {
+          return b.start_time.localeCompare(a.start_time)
+        }
+        return dateCompare
+      })
+      
+      console.log('Fetched visits for assigned patients:', allVisits)
+      setVisits(allVisits)
+    } catch (error) {
+      console.error('Error fetching provider visits:', error)
+      setVisits([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <p>Loading visits...</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      {visits.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground">
+          No scheduled visits found.
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {visits.map((visit) => (
+            <MedicationCard
+              key={visit.id}
+              medicationName={visit.patient_name}
+              dosage={visit.treatment_type?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+              supply={`${(() => {
+                const [year, month, day] = visit.appointment_date.split('-').map(Number)
+                const date = new Date(year, month - 1, day)
+                return date.toLocaleDateString('en-US', {
+                  month: 'long',
+                  day: 'numeric',
+                  year: 'numeric'
+                })
+              })()} at ${visit.start_time}`}
+              status={visit.status}
+              onTitleClick={() => onVisitClick?.(visit)}
+              className="w-full max-w-none cursor-pointer"
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -512,7 +789,10 @@ export function ProviderDashboard({
   onNavigate,
   providerId,
   assignedPatients,
-  onPatientClick
+  onPatientClick,
+  onApprovalAction,
+  onVisitClick,
+  onMedicationClick
 }: {
   user?: {
     name: string
@@ -526,7 +806,13 @@ export function ProviderDashboard({
   providerId?: string
   assignedPatients?: Patient[]
   onPatientClick?: (patient: Patient) => void
+  onApprovalAction?: (preferenceId: string, action: 'approve' | 'deny') => void
+  onVisitClick?: (visit: ProviderVisit) => void
+  onMedicationClick?: (preference: MedicationPreference) => void
 }) {
+  const [visitsCount, setVisitsCount] = React.useState(0)
+  const [approvalsCount, setApprovalsCount] = React.useState(0)
+
   return (
     <SidebarProvider>
         <AppSidebar user={user} onLogout={onLogout} onNavigate={onNavigate} userRole="provider" />
@@ -556,13 +842,46 @@ export function ProviderDashboard({
               />
             ) : (
               <>
-                {/* Dashboard content */}
-                <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-                  <div className="bg-muted/50 aspect-video rounded-xl" />
-                  <div className="bg-muted/50 aspect-video rounded-xl" />
-                  <div className="bg-muted/50 aspect-video rounded-xl" />
+                {/* Always render both components to get counts, but hide them */}
+                <div style={{ display: 'none' }}>
+                  <ProviderVisits 
+                    providerId={providerId}
+                    assignedPatients={assignedPatients}
+                    onVisitClick={onVisitClick}
+                    onCountChange={setVisitsCount}
+                  />
+                  <ProviderApprovals 
+                    providerId={providerId}
+                    assignedPatients={assignedPatients}
+                    onApprovalAction={onApprovalAction}
+                    onMedicationClick={onMedicationClick}
+                    onCountChange={setApprovalsCount}
+                  />
                 </div>
-                <div className="bg-muted/50 min-h-[100vh] flex-1 rounded-xl md:min-h-min" />
+                
+                <Tabs defaultValue="visits" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="visits">Visits ({visitsCount})</TabsTrigger>
+                    <TabsTrigger value="approvals">Approvals ({approvalsCount})</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="visits" className="mt-4">
+                    <ProviderVisits 
+                      providerId={providerId}
+                      assignedPatients={assignedPatients}
+                      onVisitClick={onVisitClick}
+                      onCountChange={() => {}} // Don't update count again
+                    />
+                  </TabsContent>
+                  <TabsContent value="approvals" className="mt-4">
+                    <ProviderApprovals 
+                      providerId={providerId}
+                      assignedPatients={assignedPatients}
+                      onApprovalAction={onApprovalAction}
+                      onMedicationClick={onMedicationClick}
+                      onCountChange={() => {}} // Don't update count again
+                    />
+                  </TabsContent>
+                </Tabs>
               </>
             )}
           </div>

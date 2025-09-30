@@ -4,7 +4,8 @@ import {
   ProviderDashboard as ProviderDashboardComponent, 
   type Patient,
   ProviderPatientInformationDialog,
-  type ProviderPatientData
+  type ProviderPatientData,
+  type ProviderVisit
 } from '@joinomu/ui'
 import { useAuth } from '@/hooks/useAuth'
 import { authService } from '@joinomu/shared'
@@ -21,6 +22,9 @@ export function ProviderDashboard() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedPatient, setSelectedPatient] = useState<ProviderPatientData | null>(null)
   const [isLoadingPatient, setIsLoadingPatient] = useState(false)
+  const [dialogInitialTab, setDialogInitialTab] = useState<string | undefined>(undefined)
+  const [dialogInitialVisitId, setDialogInitialVisitId] = useState<string | undefined>(undefined)
+  const [dialogInitialMedicationId, setDialogInitialMedicationId] = useState<string | undefined>(undefined)
 
   useEffect(() => {
     const fetchProviderData = async () => {
@@ -91,6 +95,12 @@ export function ProviderDashboard() {
               
               console.log('Transformed patients with medications:', transformedPatients)
               console.log('First transformed patient medications:', transformedPatients[0]?.medications)
+              console.log('🔍 PROVIDER DASHBOARD: Setting assigned patients for approvals check:', transformedPatients.map(p => ({ 
+                id: p.id, 
+                name: p.name, 
+                profile_id: p.profile_id,
+                has_completed_intake: p.has_completed_intake
+              })))
               setAssignedPatients(transformedPatients)
             } else {
               console.log('No patients found from auth service:', patientsError)
@@ -153,6 +163,12 @@ export function ProviderDashboard() {
       console.log('🔄 Already loading patient, ignoring click')
       return
     }
+    
+    // Clear any initial tab/ID settings when opening from patient table
+    // This ensures clicks from the patient table always start at "Patient Information"
+    setDialogInitialTab(undefined)
+    setDialogInitialVisitId(undefined)
+    setDialogInitialMedicationId(undefined)
     
     // Fetch patient medication preferences and appointments
     try {
@@ -299,6 +315,73 @@ export function ProviderDashboard() {
     }
   }
 
+  const handleApprovalAction = async (preferenceId: string, action: 'approve' | 'deny') => {
+    let savingToastId: string | number | undefined
+    
+    try {
+      // Show saving toast
+      savingToastId = MedicationToast.saving('medication approval')
+      
+      // Update the medication preference status
+      const updates = {
+        status: action === 'approve' ? 'approved' : 'denied',
+        providerNotes: action === 'approve' ? 'Approved by provider' : 'Denied by provider'
+      }
+      
+      const result = await authService.updateMedicationPreference(preferenceId, updates, providerData?.id)
+      
+      if (savingToastId) {
+        dismissToast(savingToastId)
+      }
+      
+      if (result.success) {
+        // Show success toast
+        MedicationToast.saved(`medication ${action}d`)
+        
+        if (action === 'approve') {
+          MedicationToast.saved('medication order created')
+        }
+      } else {
+        MedicationToast.error('medication approval', result.error?.message || 'Unknown error')
+      }
+    } catch (error) {
+      if (savingToastId) {
+        dismissToast(savingToastId)
+      }
+      MedicationToast.error('medication approval', error instanceof Error ? error.message : 'Unknown error')
+    }
+  }
+
+  const handleVisitClick = async (visit: ProviderVisit) => {
+    console.log('Visit clicked:', visit)
+    // Find the patient by patient_id from the visit
+    const patient = assignedPatients.find(p => p.id === visit.patient_id)
+    if (!patient) {
+      console.error('Patient not found for visit:', visit)
+      return
+    }
+    
+    // Open the patient dialog with Visits tab and auto-select the specific visit
+    await handlePatientClick(patient)
+    setDialogInitialTab('Visits')
+    setDialogInitialVisitId(visit.id)
+  }
+
+  const handleMedicationClick = async (preference: any) => {
+    console.log('Medication preference clicked:', preference)
+    // Find the patient by patient_id from the preference
+    const patient = assignedPatients.find(p => p.name === preference.patient_name)
+    if (!patient) {
+      console.error('Patient not found for medication preference:', preference)
+      return
+    }
+    
+    // Open the patient dialog with Medications tab and auto-select the specific medication
+    await handlePatientClick(patient)
+    setDialogInitialTab('Medications')
+    setDialogInitialMedicationId(preference.id)
+  }
+
   const userData = {
     name: `${providerData.first_name} ${providerData.last_name}`,
     email: user?.email || '',
@@ -316,12 +399,26 @@ export function ProviderDashboard() {
         providerId={providerData?.id}
         assignedPatients={assignedPatients}
         onPatientClick={handlePatientClick}
+        onApprovalAction={handleApprovalAction}
+        onVisitClick={handleVisitClick}
+        onMedicationClick={handleMedicationClick}
       />
       <ProviderPatientInformationDialog
         open={dialogOpen}
-        onOpenChange={setDialogOpen}
+        onOpenChange={(open) => {
+          setDialogOpen(open)
+          if (!open) {
+            // Clear state when dialog closes
+            setDialogInitialTab(undefined)
+            setDialogInitialVisitId(undefined)
+            setDialogInitialMedicationId(undefined)
+          }
+        }}
         patient={selectedPatient}
         providerId={providerData?.id}
+        initialTab={dialogInitialTab}
+        initialVisitId={dialogInitialVisitId}
+        initialMedicationId={dialogInitialMedicationId}
         onMedicationUpdate={handleMedicationUpdate}
       />
     </>

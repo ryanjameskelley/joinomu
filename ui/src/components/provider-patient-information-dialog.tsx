@@ -116,6 +116,9 @@ interface ProviderPatientInformationDialogProps {
   onOpenChange: (open: boolean) => void
   patient: ProviderPatientData | null
   providerId?: string
+  initialTab?: string
+  initialVisitId?: string
+  initialMedicationId?: string
   onMedicationUpdate?: (medicationId: string, updates: {
     status?: string
     dosage?: string
@@ -138,10 +141,13 @@ export function ProviderPatientInformationDialog({
   onOpenChange,
   patient,
   providerId,
+  initialTab,
+  initialVisitId,
+  initialMedicationId,
   onMedicationUpdate
 }: ProviderPatientInformationDialogProps) {
   const [isFullscreen, setIsFullscreen] = React.useState(false)
-  const [activeTab, setActiveTab] = React.useState("Patient Information")
+  const [activeTab, setActiveTab] = React.useState(initialTab || "Patient Information")
   const [selectedMedication, setSelectedMedication] = React.useState<PatientMedicationPreference | null>(null)
   const [editedMedication, setEditedMedication] = React.useState<PatientMedicationPreference | null>(null)
   const [selectedVisit, setSelectedVisit] = React.useState<PatientVisit | null>(null)
@@ -153,6 +159,73 @@ export function ProviderPatientInformationDialog({
   const [isAddingAddendum, setIsAddingAddendum] = React.useState(false)
   const [existingClinicalNote, setExistingClinicalNote] = React.useState<any>(null)
   const [loadingClinicalNote, setLoadingClinicalNote] = React.useState(false)
+  
+  // Update activeTab when initialTab changes
+  React.useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab)
+    } else {
+      // Reset to default tab when initialTab is undefined (patient table click)
+      setActiveTab("Patient Information")
+      // Also clear any selected medication/visit state to reset breadcrumb
+      setSelectedMedication(null)
+      setEditedMedication(null)
+      setSelectedVisit(null)
+      setClinicalNoteData(null)
+      setExistingClinicalNote(null)
+      setPendingMedicationChanges(null)
+      setNewAddendum('')
+      setIsAddingAddendum(false)
+    }
+  }, [initialTab])
+
+  // Auto-select visit when initialVisitId is provided
+  React.useEffect(() => {
+    if (initialVisitId && patient?.visits) {
+      const visit = patient.visits.find(v => v.id === initialVisitId)
+      if (visit) {
+        handleVisitSelect(visit)
+      }
+    }
+  }, [initialVisitId, patient?.visits])
+
+  // Auto-select medication when initialMedicationId is provided
+  React.useEffect(() => {
+    if (initialMedicationId && patient?.medicationPreferences) {
+      const medication = patient.medicationPreferences.find(m => m.id === initialMedicationId)
+      if (medication) {
+        handleMedicationSelect(medication)
+      }
+    }
+  }, [initialMedicationId, patient?.medicationPreferences])
+
+  // Clear selected items when switching between top-level tabs
+  React.useEffect(() => {
+    // When activeTab changes, clear any nested navigation state
+    // This ensures breadcrumb shows the correct top-level section
+    if (activeTab === "Patient Information" || activeTab === "Tracking") {
+      setSelectedMedication(null)
+      setEditedMedication(null)
+      setSelectedVisit(null)
+      setClinicalNoteData(null)
+      setExistingClinicalNote(null)
+      setPendingMedicationChanges(null)
+      setNewAddendum('')
+      setIsAddingAddendum(false)
+    } else if (activeTab === "Medications") {
+      // Clear visit-related state when switching to Medications tab
+      setSelectedVisit(null)
+      setClinicalNoteData(null)
+      setExistingClinicalNote(null)
+      setNewAddendum('')
+      setIsAddingAddendum(false)
+    } else if (activeTab === "Visits") {
+      // Clear medication-related state when switching to Visits tab
+      setSelectedMedication(null)
+      setEditedMedication(null)
+      setPendingMedicationChanges(null)
+    }
+  }, [activeTab])
   
   if (!patient) return null
 
