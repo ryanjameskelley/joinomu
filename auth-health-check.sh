@@ -1,12 +1,15 @@
 #!/bin/bash
 # auth-health-check.sh - Quick health check for authentication system
 
+# Set PATH for cron environment
+export PATH="/usr/local/bin:/usr/bin:/bin"
+
 echo "🏥 AUTHENTICATION SYSTEM HEALTH CHECK"
 echo "====================================="
 
 # Check if trigger exists
 echo "🔧 Checking auth trigger..."
-docker exec supabase_db_joinomu-monorepo psql -U postgres -d postgres -c "
+/usr/local/bin/docker exec supabase_db_joinomu-monorepo psql -U postgres -d postgres -c "
 SELECT 
   'Auth Trigger Check' as component,
   CASE 
@@ -19,7 +22,7 @@ SELECT
 # Check if function exists
 echo ""
 echo "⚙️ Checking trigger function..."
-docker exec supabase_db_joinomu-monorepo psql -U postgres -d postgres -c "
+/usr/local/bin/docker exec supabase_db_joinomu-monorepo psql -U postgres -d postgres -c "
 SELECT 
   'Auth Function Check' as component,
   CASE 
@@ -32,7 +35,7 @@ SELECT
 # Check for orphaned users
 echo ""
 echo "👥 Checking for orphaned auth records..."
-docker exec supabase_db_joinomu-monorepo psql -U postgres -d postgres -c "
+/usr/local/bin/docker exec supabase_db_joinomu-monorepo psql -U postgres -d postgres -c "
 WITH auth_health AS (
   SELECT 
     COUNT(*) as total_users,
@@ -56,7 +59,7 @@ FROM auth_health;
 # Check table counts
 echo ""
 echo "📊 Table record counts..."
-docker exec supabase_db_joinomu-monorepo psql -U postgres -d postgres -c "
+/usr/local/bin/docker exec supabase_db_joinomu-monorepo psql -U postgres -d postgres -c "
 SELECT 
   'profiles' as table_name, COUNT(*) as record_count FROM public.profiles
 UNION ALL

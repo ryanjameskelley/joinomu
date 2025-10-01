@@ -67,6 +67,8 @@ export * from './components/toast'
 export * from './forms/login-form'
 export * from './forms/signup-form'
 export * from './forms/eligibility-form'
+export * from './forms/admin-login-form'
+export * from './forms/admin-signup-form'
 
 // Admin Components
 export * from './admin/patient-assignment-interface'

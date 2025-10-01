@@ -27,6 +27,10 @@ const config: StorybookConfig = {
       ...config.resolve.alias,
       '@joinomu/ui': join(dirname(__filename), '../ui/src'),
       '@joinomu/shared': join(dirname(__filename), '../shared/src'),
+      // Add path aliases for @ imports
+      '@/utils': join(dirname(__filename), '../apps/web/src/utils'),
+      '@/ui': join(dirname(__filename), '../apps/web/src/ui'),
+      '@': join(dirname(__filename), '../apps/web/src'),
     }
     
     // Ensure PostCSS processes Tailwind properly

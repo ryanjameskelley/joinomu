@@ -38,10 +38,13 @@ export interface ClinicalNoteData {
 export interface VisitClinicalNoteProps {
   visit: PatientVisit
   patientName: string
+  patientProfileId?: string  // Add patient profile ID for fax creation
+  providerProfileId?: string  // Add provider profile ID for fax creation
   medication?: MedicationAdjustmentData
   clinicalNote?: ClinicalNoteData
   onMedicationChange?: (medication: MedicationAdjustmentData) => void
   onClinicalNoteChange?: (clinicalNote: ClinicalNoteData) => void
+  onMedicationFax?: (medicationId: string, shouldFax: boolean, patientProfileId?: string, providerProfileId?: string) => Promise<void>
   onSave?: () => void
   isSaving?: boolean
   className?: string
@@ -50,10 +53,13 @@ export interface VisitClinicalNoteProps {
 export function VisitClinicalNote({
   visit,
   patientName,
+  patientProfileId,
+  providerProfileId,
   medication,
   clinicalNote,
   onMedicationChange,
   onClinicalNoteChange,
+  onMedicationFax,
   onSave,
   isSaving = false,
   className
@@ -76,6 +82,9 @@ export function VisitClinicalNote({
 
   // Track medication state locally to ensure it's editable
   const [localMedication, setLocalMedication] = React.useState<MedicationAdjustmentData | null>(medication || null)
+  
+  // Track whether fax should be sent when form is saved
+  const [shouldFaxOnSave, setShouldFaxOnSave] = React.useState<boolean>(false)
 
   // Update local medication when prop changes
   React.useEffect(() => {
@@ -159,6 +168,37 @@ export function VisitClinicalNote({
     onClinicalNoteChange?.(updated)
   }
 
+  const handleSave = async () => {
+    try {
+      console.log('🔍 handleSave called - shouldFaxOnSave:', shouldFaxOnSave, 'localMedication:', !!localMedication, 'onMedicationFax:', !!onMedicationFax)
+      
+      // First save the clinical note
+      if (onSave) {
+        await onSave()
+      }
+      
+      // Then execute fax if needed
+      if (shouldFaxOnSave && localMedication && onMedicationFax) {
+        console.log('🔍 Executing fax for medication:', localMedication.id, 'patient:', patientProfileId, 'provider:', providerProfileId)
+        console.log('🔍 Props received - patientProfileId:', patientProfileId, 'providerProfileId:', providerProfileId)
+        await onMedicationFax(localMedication.id, true, patientProfileId, providerProfileId)
+        
+        // Update local medication state to reflect actual faxed status
+        const updatedMedication = {
+          ...localMedication,
+          faxed: new Date().toISOString()
+        }
+        setLocalMedication(updatedMedication)
+        onMedicationChange?.(updatedMedication)
+        
+        // Reset fax intent
+        setShouldFaxOnSave(false)
+      }
+    } catch (error) {
+      console.error('Error saving clinical note and faxing:', error)
+    }
+  }
+
   const statusColors = {
     scheduled: 'bg-blue-100 text-blue-800',
     confirmed: 'bg-green-100 text-green-800',
@@ -222,13 +262,32 @@ export function VisitClinicalNote({
           <h3 className="text-lg font-semibold mb-4">Medication Adjustments</h3>
           <MedicationAdjustmentForm
             medication={localMedication}
+            showFaxCheckbox={true}
             onChange={(updatedMedication) => {
               console.log('Medication form changed:', updatedMedication)
               setLocalMedication(updatedMedication)
               onMedicationChange?.(updatedMedication)
             }}
+            onFax={async (shouldFax) => {
+              console.log('🔍 Fax checkbox clicked - shouldFax:', shouldFax)
+              // Only track fax intent locally - don't execute until form is saved
+              setShouldFaxOnSave(shouldFax)
+              
+              // Update local medication state to show fax intent
+              if (localMedication) {
+                const updatedMedication = {
+                  ...localMedication,
+                  // Set faxed to 'pending' to show checkbox state, but don't process until save
+                  faxed: shouldFax ? 'pending' : null
+                }
+                console.log('🔍 Updated medication with fax intent:', updatedMedication)
+                setLocalMedication(updatedMedication)
+                onMedicationChange?.(updatedMedication)
+              }
+            }}
             showSaveButton={false}
             showRequestedDate={false}
+            showFaxCheckbox={true}
           />
         </div>
       )}
@@ -438,11 +497,11 @@ export function VisitClinicalNote({
       {onSave && (
         <div className="flex justify-end">
           <Button 
-            onClick={onSave}
+            onClick={handleSave}
             disabled={isSaving}
             size="lg"
           >
-            {isSaving ? 'Saving...' : 'Save Clinical Note'}
+            {isSaving ? 'Saving...' : shouldFaxOnSave ? 'Save Clinical Note & Fax Prescription' : 'Save Clinical Note'}
           </Button>
         </div>
       )}

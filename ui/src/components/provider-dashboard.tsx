@@ -54,6 +54,7 @@ import { supabase } from '@joinomu/shared'
 // Patient data type with relationship info
 export type Patient = {
   id: string
+  profile_id: string
   name: string
   careTeam: string[]
   treatments: string[]
@@ -71,9 +72,10 @@ export type MedicationPreference = {
   medication_name: string
   preferred_dosage: string
   frequency: string
-  status: 'pending' | 'approved' | 'denied'
+  status: 'pending' | 'approved' | 'denied' | 'needs_review'
   requested_date: string
   notes?: string
+  next_visit?: string | null
 }
 
 export type ProviderVisit = {
@@ -173,6 +175,35 @@ function ProviderApprovals({
     onCountChange?.(preferences.length)
   }, [preferences.length, onCountChange])
 
+  // Function to check for expired approvals and reset them (no daily limit)
+  const checkForExpiredApprovals = async () => {
+    try {
+      const { supabase } = await import('@joinomu/shared')
+      
+      console.log('🔄 Checking for expired approvals to reset...')
+      
+      const { data, error } = await supabase.rpc('reset_expired_approvals')
+      
+      if (error) {
+        console.error('❌ Error checking expired approvals:', error)
+        return 0
+      }
+      
+      console.log('✅ Expired approvals check completed:', data)
+      
+      if (data > 0) {
+        console.log(`🔄 Reset ${data} expired approvals to pending status`)
+      } else {
+        console.log('🔍 No expired approvals found')
+      }
+      
+      return data
+    } catch (error) {
+      console.error('❌ Error checking expired approvals:', error)
+      return 0
+    }
+  }
+
   const fetchPendingApprovals = async () => {
     try {
       if (!assignedPatients || assignedPatients.length === 0) {
@@ -189,19 +220,43 @@ function ProviderApprovals({
       
       for (const patient of assignedPatients) {
         try {
-          console.log(`🔍 Fetching preferences for patient: ${patient.name} (profile_id: ${patient.profile_id})`)
-          // Use the patient's profile_id to fetch their medication preferences
+          console.log(`🔍 Fetching preferences and visits for patient: ${patient.name} (profile_id: ${patient.profile_id})`)
+          
+          // Fetch medication preferences
           const result = await authService.getPatientMedicationPreferences(patient.profile_id)
           console.log(`🔍 Raw preferences result for ${patient.name}:`, result)
+          
+          // Fetch next upcoming visit for patient
+          let nextVisit = null
+          try {
+            const appointmentsResult = await authService.getPatientAppointments(patient.profile_id, true)
+            if (appointmentsResult.data && appointmentsResult.data.length > 0) {
+              // Find the next upcoming appointment
+              const now = new Date()
+              const upcomingVisits = appointmentsResult.data
+                .filter(appt => {
+                  const apptDate = new Date(appt.appointment_date)
+                  return apptDate >= now && (appt.status === 'scheduled' || appt.status === 'confirmed')
+                })
+                .sort((a, b) => new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime())
+              
+              if (upcomingVisits.length > 0) {
+                nextVisit = upcomingVisits[0].appointment_date
+                console.log(`🔍 Next visit for ${patient.name}: ${nextVisit}`)
+              }
+            }
+          } catch (visitError) {
+            console.warn(`⚠️ Error fetching visits for patient ${patient.name}:`, visitError)
+          }
           
           if (result.data && result.data.length > 0) {
             console.log(`🔍 All preferences for ${patient.name}:`, result.data.map(p => ({ id: p.id, medication: p.medication_name, status: p.status })))
             
-            // Filter for pending preferences only and transform to our interface
+            // Filter for pending and needs_review preferences and transform to our interface
             const pendingPreferences = result.data
               .filter(pref => {
                 console.log(`🔍 Checking preference ${pref.medication_name}: status = ${pref.status}`)
-                return pref.status === 'pending'
+                return pref.status === 'pending' || pref.status === 'needs_review'
               })
               .map(pref => ({
                 id: pref.id,
@@ -210,12 +265,13 @@ function ProviderApprovals({
                 medication_name: pref.medication_name,
                 preferred_dosage: pref.preferred_dosage,
                 frequency: pref.frequency || 'As needed',
-                status: pref.status as 'pending' | 'approved' | 'denied',
+                status: pref.status as 'pending' | 'approved' | 'denied' | 'needs_review',
                 requested_date: pref.requested_date,
-                notes: pref.notes
+                notes: pref.notes,
+                next_visit: nextVisit
               }))
             
-            console.log(`🔍 Pending preferences for ${patient.name}:`, pendingPreferences)
+            console.log(`🔍 Pending/needs_review preferences for ${patient.name}:`, pendingPreferences)
             allPreferences.push(...pendingPreferences)
           } else {
             console.log(`🔍 No preferences found for ${patient.name}`)
@@ -255,6 +311,21 @@ function ProviderApprovals({
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-semibold">Pending Medication Approvals</h3>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={async () => {
+            setLoading(true)
+            await checkForExpiredApprovals()
+            await fetchPendingApprovals()
+          }}
+          disabled={loading}
+        >
+          {loading ? 'Checking...' : 'Check for Renewals'}
+        </Button>
+      </div>
       {preferences.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
           No pending approvals at this time.
@@ -269,6 +340,7 @@ function ProviderApprovals({
               supply={preference.frequency}
               status={preference.status}
               orderNumber={`${preference.patient_name}`}
+              nextVisit={preference.next_visit}
               onTitleClick={() => onMedicationClick?.(preference)}
               className="w-full max-w-none cursor-pointer"
             />
@@ -434,6 +506,7 @@ function PatientTable({
           assigned_date,
           patients (
             id,
+            profile_id,
             first_name,
             last_name,
             email,
@@ -450,6 +523,7 @@ function PatientTable({
 
           return {
             id: patient.id,
+            profile_id: patient.profile_id,
             name: `${patient.first_name} ${patient.last_name}`,
             careTeam: ['You'], // Provider seeing their own patients
             treatments: [pp.treatment_type.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())],

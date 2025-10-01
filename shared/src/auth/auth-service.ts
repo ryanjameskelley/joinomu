@@ -331,9 +331,17 @@ class AuthService {
     try {
       console.log('🔄 Updating medication order (admin):', orderId, updateData)
 
+      // Clean up the update data to convert empty strings to null for timestamp fields
+      const cleanedUpdateData = {
+        ...updateData,
+        payment_date: updateData.payment_date === '' ? null : updateData.payment_date,
+        shipped_date: updateData.shipped_date === '' ? null : updateData.shipped_date,
+        estimated_delivery: updateData.estimated_delivery === '' ? null : updateData.estimated_delivery,
+      }
+
       const { data, error } = await supabase
         .from('medication_orders')
-        .update(updateData)
+        .update(cleanedUpdateData)
         .eq('id', orderId)
         .select()
         .single()
@@ -531,12 +539,12 @@ class AuthService {
     }
   }
 
-  async getPatientAppointments(userId?: string) {
+  async getPatientAppointments(userId?: string, upcomingOnly?: boolean) {
     try {
       const targetUserId = userId || (await this.getCurrentUser()).user?.id
       if (!targetUserId) return { data: null, error: new Error('No user ID') }
 
-      console.log('🔍 getPatientAppointments for user profile ID:', targetUserId)
+      console.log('🔍 getPatientAppointments for user profile ID:', targetUserId, 'upcomingOnly:', upcomingOnly, '(filtering for appointments in history without clinical notes)')
 
       // First get the patient table ID from the profile ID
       const { data: patientData, error: patientError } = await supabase
@@ -552,8 +560,8 @@ class AuthService {
 
       console.log('🔍 Found patient table ID:', patientData.id)
 
-      // Get appointments with full provider information including profile data
-      const { data, error } = await supabase
+      // Get appointments that exist in appointment_history but don't have clinical notes
+      let query = supabase
         .from('appointments')
         .select(`
           *,
@@ -569,10 +577,29 @@ class AuthService {
               last_name,
               email
             )
+          ),
+          appointment_history!inner (
+            id
+          ),
+          clinical_notes (
+            id
           )
         `)
         .eq('patient_id', patientData.id)
-        .order('appointment_date', { ascending: false })
+        .is('clinical_notes.id', null) // Only appointments WITHOUT clinical notes
+
+      // Apply filtering if upcomingOnly is true
+      if (upcomingOnly) {
+        const today = new Date().toISOString().split('T')[0] // Get current date in YYYY-MM-DD format
+        query = query
+          .gte('appointment_date', today) // Only future/today appointments
+          .in('status', ['scheduled', 'confirmed']) // Only scheduled or confirmed appointments
+          .order('appointment_date', { ascending: true }) // Order by date ascending (earliest first)
+      } else {
+        query = query.order('appointment_date', { ascending: false }) // Order by date descending (latest first)
+      }
+
+      const { data, error } = await query
 
       if (error) {
         console.log('❌ Error fetching appointments:', error)
@@ -641,7 +668,8 @@ class AuthService {
     dosage?: string; 
     status?: string; 
     frequency?: string; 
-    providerNotes?: string 
+    providerNotes?: string;
+    faxed?: boolean
   }, providerId?: string) {
     try {
       console.log('🔄 Updating medication preference:', preferenceId, preferences)
@@ -666,6 +694,9 @@ class AuthService {
       if (preferences.providerNotes !== undefined) {
         updateData.notes = preferences.providerNotes
       }
+      if (preferences.faxed !== undefined) {
+        updateData.faxed = preferences.faxed ? new Date().toISOString() : null
+      }
       
       console.log('🔍 Update data:', updateData)
       
@@ -683,88 +714,8 @@ class AuthService {
       
       console.log('✅ Medication preference updated successfully:', data)
       
-      // If status is approved and we have providerId, create approval and order records
-      if (preferences.status === 'approved' && providerId && data) {
-        console.log('🔄 Creating approval and order records for approved medication...')
-        
-        try {
-          // Create medication approval record
-          const approvalData = {
-            preference_id: preferenceId,
-            provider_id: providerId,
-            status: 'approved',
-            approved_dosage: preferences.dosage || data.preferred_dosage,
-            approved_frequency: preferences.frequency || data.frequency,
-            provider_notes: preferences.providerNotes || '',
-            approval_date: new Date().toISOString()
-          }
-          
-          console.log('🔍 Creating approval with data:', approvalData)
-          
-          const { data: approvalRecord, error: approvalError } = await supabase
-            .from('medication_approvals')
-            .insert(approvalData)
-            .select()
-            .single()
-          
-          if (approvalError) {
-            console.log('❌ Error creating approval record:', approvalError)
-            // Don't fail the entire operation, just log the error
-          } else {
-            console.log('✅ Approval record created:', approvalRecord)
-            
-            // Create medication order record
-            // Get medication pricing and information from medications table
-            console.log('🔍 Looking up medication info and pricing for medication_id:', data.medication_id)
-            
-            const { data: medicationInfo, error: medError } = await supabase
-              .from('medications')
-              .select('unit_price, name, brand_name, strength')
-              .eq('id', data.medication_id)
-              .single()
-            
-            if (medError) {
-              console.log('⚠️ Error looking up medication info:', medError)
-            } else {
-              console.log('✅ Found medication info:', medicationInfo)
-            }
-            
-            const unitPrice = medicationInfo?.unit_price || 100.00 // Default price if not found
-            console.log('🔍 Using unit price:', unitPrice)
-            const quantity = 1 // Default quantity
-            const totalAmount = unitPrice * quantity
-            
-            const orderData = {
-              approval_id: approvalRecord.id,
-              patient_id: data.patient_id,
-              medication_id: data.medication_id,
-              quantity: quantity,
-              unit_price: unitPrice,
-              total_amount: totalAmount,
-              payment_status: 'pending', // Admin needs to complete payment details
-              fulfillment_status: 'pending' // Admin needs to process fulfillment
-            }
-            
-            console.log('🔍 Creating order with data:', orderData)
-            
-            const { data: orderRecord, error: orderError } = await supabase
-              .from('medication_orders')
-              .insert(orderData)
-              .select()
-              .single()
-            
-            if (orderError) {
-              console.log('❌ Error creating order record:', orderError)
-              console.log('❌ Order data that failed:', orderData)
-            } else {
-              console.log('✅ Order record created successfully:', orderRecord)
-            }
-          }
-        } catch (approvalOrderError) {
-          console.log('❌ Exception creating approval/order records:', approvalOrderError)
-          // Don't fail the main operation
-        }
-      }
+      // Note: Orders are now only created via fax workflow, not on approval
+      // The fax trigger (create_order_on_fax_trigger) handles order creation
       
       return { success: true, data, error: null }
     } catch (error: any) {
@@ -1285,6 +1236,122 @@ class AuthService {
       return { data: transformedData, error: null }
     } catch (error: any) {
       console.log('❌ Exception in getAllProviders:', error)
+      return { data: null, error }
+    }
+  }
+
+  async createMedicationApprovalAndFax(preferenceId: string, providerProfileId: string, patientProfileId: string) {
+    try {
+      console.log('🚨🚨🚨 UPDATED FUNCTION CALLED - Creating medication approval and fax for preference:', preferenceId)
+      console.log('🚨🚨🚨 FUNCTION PARAMETERS:', { preferenceId, providerProfileId, patientProfileId })
+      
+      console.log('🔄 Using simplified profile ID approach - Provider:', providerProfileId, 'Patient:', patientProfileId)
+      
+      // Get provider table ID for backward compatibility  
+      const { data: providerData, error: providerError } = await supabase
+        .from('providers')
+        .select('id')
+        .eq('profile_id', providerProfileId)
+        .single()
+
+      if (providerError || !providerData) {
+        console.error('❌ Provider not found for profile ID:', providerProfileId, providerError)
+        return { data: null, error: providerError }
+      }
+
+      const providerId = providerData.id
+      console.log('✅ Found provider table ID:', providerId, 'for profile ID:', providerProfileId)
+
+      // Get patient table ID for backward compatibility
+      const { data: patientData, error: patientError } = await supabase
+        .from('patients')
+        .select('id')
+        .eq('profile_id', patientProfileId)
+        .single()
+
+      if (patientError || !patientData) {
+        console.error('❌ Patient not found for profile ID:', patientProfileId, patientError)
+        return { data: null, error: patientError }
+      }
+
+      const patientId = patientData.id
+      console.log('✅ Found patient table ID:', patientId, 'for profile ID:', patientProfileId)
+      
+      // First check if approval already exists
+      const { data: existingApproval } = await supabase
+        .from('medication_approvals')
+        .select('id')
+        .eq('preference_id', preferenceId)
+        .single()
+
+      let approvalId = existingApproval?.id
+
+      if (!approvalId) {
+        // Create new approval with both old and new column format for compatibility
+        const { data: newApproval, error: approvalError } = await supabase
+          .from('medication_approvals')
+          .insert({
+            preference_id: preferenceId,
+            provider_id: providerId, // Legacy column
+            provider_profile_id: providerProfileId, // New simplified column
+            status: 'approved',
+            approval_date: new Date().toISOString()
+          })
+          .select('id')
+          .single()
+
+        if (approvalError) {
+          console.error('❌ Error creating approval:', approvalError)
+          return { data: null, error: approvalError }
+        }
+
+        approvalId = newApproval.id
+        console.log('✅ Created new approval:', approvalId)
+      } else {
+        console.log('✅ Using existing approval:', approvalId)
+      }
+
+      // Create fax record with both legacy and new columns for compatibility
+      const { data: faxRecord, error: faxError } = await supabase
+        .from('faxes')
+        .insert({
+          approval_id: approvalId,
+          preference_id: preferenceId,
+          patient_id: patientId, // Legacy column
+          provider_id: providerId, // Legacy column
+          provider_profile_id: providerProfileId, // New simplified column
+          patient_profile_id: patientProfileId,   // New simplified column
+          fax_number: 'pharmacy-fax-number', // TODO: Get actual pharmacy fax number
+          fax_content: 'Prescription faxed to pharmacy',
+          fax_status: 'sent'
+        })
+        .select()
+        .single()
+
+      if (faxError) {
+        console.error('❌ Error creating fax record:', faxError)
+        return { data: null, error: faxError }
+      }
+
+      // Update preference with faxed timestamp
+      const { error: updateError } = await supabase
+        .from('patient_medication_preferences')
+        .update({ 
+          faxed: new Date().toISOString(),
+          status: 'approved'
+        })
+        .eq('id', preferenceId)
+
+      if (updateError) {
+        console.error('❌ Error updating preference:', updateError)
+        return { data: null, error: updateError }
+      }
+
+      console.log('✅ Successfully created approval and fax workflow with simplified profile IDs')
+      return { data: { approvalId, faxId: faxRecord.id }, error: null }
+
+    } catch (error: any) {
+      console.error('❌ Exception in createMedicationApprovalAndFax:', error)
       return { data: null, error }
     }
   }

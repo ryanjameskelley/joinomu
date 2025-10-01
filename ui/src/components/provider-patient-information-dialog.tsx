@@ -35,6 +35,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./card"
 import { Label } from "./label"
 import { Input } from "./input"
 import { Textarea } from "./textarea"
+import { Checkbox } from "./checkbox"
 import {
   Select,
   SelectContent,
@@ -73,6 +74,8 @@ export interface PatientMedicationPreference {
   status: 'pending' | 'approved' | 'denied' | 'discontinued'
   requested_date: string
   notes?: string
+  faxed?: string | null
+  next_prescription_due?: string | null
 }
 
 export interface PatientVisit {
@@ -97,6 +100,7 @@ export interface PatientVisitAddendum {
 
 export interface ProviderPatientData {
   id: string
+  profile_id: string
   name: string
   email: string
   dateOfBirth?: string
@@ -124,6 +128,7 @@ interface ProviderPatientInformationDialogProps {
     dosage?: string
     frequency?: string
     providerNotes?: string
+    faxed?: boolean
   }) => Promise<void>
 }
 
@@ -159,6 +164,8 @@ export function ProviderPatientInformationDialog({
   const [isAddingAddendum, setIsAddingAddendum] = React.useState(false)
   const [existingClinicalNote, setExistingClinicalNote] = React.useState<any>(null)
   const [loadingClinicalNote, setLoadingClinicalNote] = React.useState(false)
+  const [faxes, setFaxes] = React.useState<any[]>([])
+  const [loadingFaxes, setLoadingFaxes] = React.useState(false)
   
   // Update activeTab when initialTab changes
   React.useEffect(() => {
@@ -338,9 +345,38 @@ export function ProviderPatientInformationDialog({
     })
   }
 
-  const handleMedicationSelect = (medication: PatientMedicationPreference) => {
+  const handleMedicationSelect = async (medication: PatientMedicationPreference) => {
     setSelectedMedication(medication)
     setEditedMedication({...medication})
+    
+    // Load faxes for this medication preference
+    await loadFaxesForMedication(medication.id)
+  }
+
+  const loadFaxesForMedication = async (preferenceId: string) => {
+    setLoadingFaxes(true)
+    try {
+      // Import services dynamically to fetch faxes
+      const { supabase } = await import('@joinomu/shared')
+      
+      const { data: faxData, error } = await supabase
+        .from('faxes')
+        .select('*')
+        .eq('preference_id', preferenceId)
+        .order('faxed_at', { ascending: false })
+      
+      if (!error && faxData) {
+        setFaxes(faxData)
+      } else {
+        console.warn('Error loading faxes:', error)
+        setFaxes([])
+      }
+    } catch (error) {
+      console.error('Error loading faxes:', error)
+      setFaxes([])
+    } finally {
+      setLoadingFaxes(false)
+    }
   }
 
   const handleSaveClinicalNote = async () => {
@@ -359,14 +395,50 @@ export function ProviderPatientInformationDialog({
     
     setIsSaving(true)
     try {
-      // Import ClinicalNotesService dynamically to avoid circular dependencies
-      const { ClinicalNotesService } = await import('@joinomu/shared')
+      // Import services dynamically to avoid circular dependencies
+      const { ClinicalNotesService, supabase } = await import('@joinomu/shared')
+      
+      // Convert provider profile_id to database provider ID
+      const { data: providerRecord, error: providerError } = await supabase
+        .from('providers')
+        .select('id')
+        .eq('profile_id', providerId)
+        .single()
+
+      if (providerError) {
+        console.error('❌ Error looking up provider:', providerError)
+        throw new Error(`Failed to lookup provider: ${providerError.message}`)
+      }
+
+      if (!providerRecord) {
+        throw new Error('Provider not found in database')
+      }
+
+      console.log('✅ Found provider database ID:', providerRecord.id, 'for profile_id:', providerId)
+
+      // Convert patient profile_id to database patient ID (patient.id might be profile_id)
+      const { data: patientRecord, error: patientError } = await supabase
+        .from('patients')
+        .select('id')
+        .eq('profile_id', patient?.profile_id)
+        .single()
+
+      if (patientError) {
+        console.error('❌ Error looking up patient:', patientError)
+        throw new Error(`Failed to lookup patient: ${patientError.message}`)
+      }
+
+      if (!patientRecord) {
+        throw new Error('Patient not found in database')
+      }
+
+      console.log('✅ Found patient database ID:', patientRecord.id, 'for profile_id:', patient?.profile_id)
       
       // Save the clinical note - transform camelCase to snake_case
       const savedNote = await ClinicalNotesService.upsertClinicalNote(selectedVisit.id, {
         appointment_id: clinicalNoteData.appointmentId,
-        patient_id: clinicalNoteData.patientId,
-        provider_id: clinicalNoteData.providerId || providerId, // Use the provider ID from props
+        patient_id: patientRecord.id, // Use the database patient ID
+        provider_id: providerRecord.id, // Use the database provider ID
         allergies: clinicalNoteData.allergies,
         previous_medications: clinicalNoteData.previousMedications,
         current_medications: clinicalNoteData.currentMedications,
@@ -483,25 +555,121 @@ export function ProviderPatientInformationDialog({
     }
   }
 
-  const handleSaveMedication = async () => {
-    if (!editedMedication || !onMedicationUpdate) return
+  const handleFaxMedication = async (shouldFax: boolean) => {
+    if (!editedMedication || !selectedMedication || !onMedicationUpdate || !providerId || !patient) return
     
     setIsSaving(true)
     try {
-      await onMedicationUpdate(editedMedication.id, {
-        status: editedMedication.status,
-        dosage: editedMedication.preferred_dosage,
-        frequency: editedMedication.frequency,
-        providerNotes: editedMedication.providerNotes
-      })
-      
-      // Update the selected medication with the new data
-      setSelectedMedication(editedMedication)
+      if (shouldFax) {
+        // Use the auth service method to create fax record with proper ID mapping
+        const { authService } = await import('@joinomu/shared')
+        
+        // Check if we have the required profile IDs
+        if (!patient.profile_id) {
+          console.error('❌ Patient profile_id is missing:', patient)
+          throw new Error('Patient profile_id is required for fax creation')
+        }
+        
+        console.log('🔄 Creating fax with profile IDs:', {
+          preferenceId: editedMedication.id,
+          providerProfileId: providerId,  // This should be provider profile ID
+          patientProfileId: patient.profile_id  // This should be patient profile ID
+        })
+        
+        const faxResult = await authService.createMedicationApprovalAndFax(
+          editedMedication.id,
+          providerId,  // This should be provider profile ID
+          patient.profile_id  // This should be patient profile ID
+        )
+        
+        console.log('🔍 Fax creation result:', faxResult)
+        
+        if (faxResult.error) {
+          console.error('❌ Fax creation failed with error:', faxResult.error)
+          console.error('❌ Error details:', {
+            message: faxResult.error.message,
+            code: faxResult.error.code,
+            details: faxResult.error.details,
+            hint: faxResult.error.hint,
+            stack: faxResult.error.stack
+          })
+          throw faxResult.error
+        }
+        
+        // Update medication preference with faxed timestamp
+        await onMedicationUpdate(editedMedication.id, {
+          status: 'approved',
+          dosage: editedMedication.preferred_dosage,
+          frequency: editedMedication.frequency,
+          providerNotes: editedMedication.providerNotes,
+          faxed: true
+        })
+        
+        // Update local state
+        const updatedMedication = {
+          ...editedMedication,
+          status: 'approved' as const,
+          faxed: new Date().toISOString()
+        }
+        setEditedMedication(updatedMedication)
+        setSelectedMedication(updatedMedication)
+        
+        // Reload faxes to show the new one
+        await loadFaxesForMedication(editedMedication.id)
+        
+        // Show success toast
+        const { showToast } = await import('./toast')
+        showToast({
+          title: "Prescription faxed",
+          description: "The prescription has been faxed to the pharmacy and an order will be created.",
+          variant: "success"
+        })
+      } else {
+        // Just update without faxing
+        await onMedicationUpdate(editedMedication.id, {
+          status: editedMedication.status,
+          dosage: editedMedication.preferred_dosage,
+          frequency: editedMedication.frequency,
+          providerNotes: editedMedication.providerNotes
+        })
+        
+        // Update the selected medication with the new data
+        setSelectedMedication(editedMedication)
+      }
     } catch (error) {
-      console.error('Error saving medication:', error)
+      console.error('❌ Error handling medication update:', error)
+      console.error('❌ Error type:', typeof error)
+      console.error('❌ Error constructor:', error?.constructor?.name)
+      
+      // Log detailed error information
+      if (error && typeof error === 'object') {
+        console.error('❌ Error properties:', {
+          message: (error as any).message,
+          code: (error as any).code,
+          details: (error as any).details,
+          hint: (error as any).hint,
+          stack: (error as any).stack,
+          name: (error as any).name
+        })
+      }
+      
+      const { showToast } = await import('./toast')
+      const errorMessage = error && typeof error === 'object' && 'message' in error 
+        ? (error as any).message 
+        : "There was an error updating the medication. Please try again."
+      
+      showToast({
+        title: "Error faxing medication",
+        description: errorMessage,
+        variant: "error"
+      })
     } finally {
       setIsSaving(false)
     }
+  }
+
+  const handleSaveMedication = async () => {
+    await handleFaxMedication(false)
   }
 
   const hasChanges = editedMedication && selectedMedication && 
@@ -742,6 +910,29 @@ export function ProviderPatientInformationDialog({
                               <p>{getStartDate(selectedMedication)}</p>
                             </div>
                           </div>
+                          
+                          {/* Faxed checkbox */}
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id="faxed"
+                              checked={!!selectedMedication.faxed}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  handleFaxMedication(true)
+                                }
+                              }}
+                              disabled={isSaving || !!selectedMedication.faxed}
+                            />
+                            <Label htmlFor="faxed" className="text-sm font-medium">
+                              Faxed to Pharmacy
+                              {selectedMedication.faxed && (
+                                <span className="text-xs text-muted-foreground ml-2">
+                                  (Faxed on {new Date(selectedMedication.faxed).toLocaleDateString()})
+                                </span>
+                              )}
+                            </Label>
+                          </div>
+                          
                           <div>
                             <Label className="text-sm font-medium">Provider Notes</Label>
                             <Textarea
@@ -753,6 +944,44 @@ export function ProviderPatientInformationDialog({
                               rows={3}
                             />
                           </div>
+                          
+                          {/* Fax History */}
+                          {faxes.length > 0 && (
+                            <div>
+                              <Label className="text-sm font-medium">Fax History</Label>
+                              <div className="mt-2 space-y-2">
+                                {loadingFaxes ? (
+                                  <p className="text-sm text-muted-foreground">Loading fax history...</p>
+                                ) : (
+                                  faxes.map((fax) => (
+                                    <div key={fax.id} className="p-3 bg-muted rounded-md">
+                                      <div className="flex justify-between items-start">
+                                        <div>
+                                          <p className="text-sm font-medium">
+                                            Faxed to: {fax.fax_number}
+                                          </p>
+                                          <p className="text-xs text-muted-foreground">
+                                            {new Date(fax.faxed_at).toLocaleString()}
+                                          </p>
+                                          {fax.fax_content && (
+                                            <p className="text-sm mt-1">{fax.fax_content}</p>
+                                          )}
+                                        </div>
+                                        <span className={`text-xs px-2 py-1 rounded ${
+                                          fax.fax_status === 'sent' ? 'bg-blue-100 text-blue-800' :
+                                          fax.fax_status === 'delivered' ? 'bg-green-100 text-green-800' :
+                                          fax.fax_status === 'failed' ? 'bg-red-100 text-red-800' :
+                                          'bg-gray-100 text-gray-800'
+                                        }`}>
+                                          {fax.fax_status}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ))
+                                )}
+                              </div>
+                            </div>
+                          )}
                         </CardContent>
                       </Card>
                     </div>
@@ -1047,13 +1276,16 @@ export function ProviderPatientInformationDialog({
                     <VisitClinicalNote
                       visit={selectedVisit}
                       patientName={patient.name}
+                      patientProfileId={patient.profile_id}
+                      providerProfileId={providerId}
                       medication={pendingMedicationChanges || (patient.medicationPreferences && patient.medicationPreferences.length > 0 ? {
                         id: patient.medicationPreferences[0].id,
                         medication_name: patient.medicationPreferences[0].medication_name,
                         preferred_dosage: patient.medicationPreferences[0].preferred_dosage,
                         frequency: patient.medicationPreferences[0].frequency,
                         status: patient.medicationPreferences[0].status,
-                        providerNotes: patient.medicationPreferences[0].notes
+                        providerNotes: patient.medicationPreferences[0].notes,
+                        faxed: patient.medicationPreferences[0].faxed
                       } : undefined)}
                       clinicalNote={clinicalNoteData}
                       onMedicationChange={(medication) => {
@@ -1063,6 +1295,134 @@ export function ProviderPatientInformationDialog({
                       }}
                       onClinicalNoteChange={(note) => {
                         setClinicalNoteData(note)
+                      }}
+                      onMedicationFax={async (medicationId, shouldFax, patientProfileId, providerProfileId) => {
+                        if (shouldFax && patientProfileId && providerProfileId) {
+                          try {
+                            setIsSaving(true)
+                            // Import supabase for direct fax record creation
+                            const { supabase } = await import('@joinomu/shared')
+                            
+                            // Find the medication from pending changes or patient preferences
+                            const medication = pendingMedicationChanges || 
+                              (patient.medicationPreferences && patient.medicationPreferences.find(m => m.id === medicationId))
+                            
+                            if (!medication) {
+                              throw new Error('Medication not found')
+                            }
+                            
+                            // Get the correct patient table ID and provider table ID first
+                            console.log('🔍 Looking up patient with profile_id:', patientProfileId)
+                            const { data: patientRecord, error: patientError } = await supabase
+                              .from('patients')
+                              .select('id')
+                              .eq('profile_id', patientProfileId)
+                              .single()
+                            
+                            console.log('🔍 Patient lookup result:', { patientRecord, patientError })
+                            
+                            console.log('🔍 Looking up provider with profile_id:', providerProfileId)
+                            const { data: providerRecord, error: providerError } = await supabase
+                              .from('providers')
+                              .select('id')
+                              .eq('profile_id', providerProfileId)
+                              .single()
+                            
+                            console.log('🔍 Provider lookup result:', { providerRecord, providerError })
+                            
+                            if (patientError) {
+                              throw new Error(`Failed to get patient table ID: ${patientError.message}`)
+                            }
+                            
+                            if (providerError) {
+                              throw new Error(`Failed to get provider table ID: ${providerError.message}`)
+                            }
+                            
+                            if (!patientRecord || !providerRecord) {
+                              throw new Error('Failed to get patient or provider table IDs')
+                            }
+                            
+                            // Now find or create an approval for this preference
+                            let approvalId = null
+                            const { data: existingApproval } = await supabase
+                              .from('medication_approvals')
+                              .select('id')
+                              .eq('preference_id', medicationId)
+                              .single()
+                            
+                            if (existingApproval) {
+                              approvalId = existingApproval.id
+                            } else {
+                              // Create an approval if none exists
+                              const { data: newApproval, error: createApprovalError } = await supabase
+                                .from('medication_approvals')
+                                .insert({
+                                  preference_id: medicationId,
+                                  provider_id: providerRecord.id, // Legacy column (use table ID)
+                                  provider_profile_id: providerProfileId, // New profile ID column
+                                  status: 'approved',
+                                  approval_date: new Date().toISOString(),
+                                  provider_notes: medication.providerNotes || 'Approved and faxed during clinical visit',
+                                  supply_days: medication.supply_days
+                                })
+                                .select('id')
+                                .single()
+                              
+                              if (createApprovalError) {
+                                throw createApprovalError
+                              }
+                              approvalId = newApproval.id
+                            }
+                            
+                            // Create fax record (this will trigger order creation)
+                            const { error: faxError } = await supabase
+                              .from('faxes')
+                              .insert({
+                                approval_id: approvalId,
+                                preference_id: medicationId,
+                                patient_id: patientRecord.id, // Legacy column
+                                provider_id: providerRecord.id, // Legacy column
+                                patient_profile_id: patientProfileId, // New profile ID column
+                                provider_profile_id: providerProfileId, // New profile ID column
+                                fax_number: '1-800-PHARMACY',
+                                fax_content: `Prescription for ${medication.medication_name} ${medication.preferred_dosage}`,
+                                fax_status: 'sent',
+                                faxed_at: new Date().toISOString()
+                              })
+                            
+                            if (faxError) {
+                              throw faxError
+                            }
+                            
+                            // Update medication preference with faxed timestamp
+                            if (onMedicationUpdate) {
+                              await onMedicationUpdate(medicationId, {
+                                status: 'approved',
+                                faxed: true
+                              })
+                            }
+                            
+                            // Show success toast
+                            const { showToast } = await import('./toast')
+                            showToast({
+                              title: "Prescription faxed",
+                              description: "The prescription has been faxed to the pharmacy and an order will be created.",
+                              variant: "success"
+                            })
+                            
+                          } catch (error) {
+                            console.error('Error faxing medication from clinical note:', error)
+                            
+                            const { showToast } = await import('./toast')
+                            showToast({
+                              title: "Error faxing medication",
+                              description: "There was an error faxing the medication. Please try again.",
+                              variant: "error"
+                            })
+                          } finally {
+                            setIsSaving(false)
+                          }
+                        }
                       }}
                       onSave={handleSaveClinicalNote}
                       isSaving={isSaving}
