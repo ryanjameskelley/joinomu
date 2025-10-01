@@ -6,6 +6,7 @@ import { Label } from "./label"
 import { Textarea } from "./textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./select"
 import { Badge } from "./badge"
+import { Checkbox } from "./checkbox"
 import { Loader2 } from "lucide-react"
 
 export interface MedicationAdjustmentData {
@@ -16,15 +17,19 @@ export interface MedicationAdjustmentData {
   status: 'pending' | 'approved' | 'denied' | 'discontinued'
   requested_date?: string
   providerNotes?: string
+  faxed?: string | null
+  supply_days?: number
 }
 
 export interface MedicationAdjustmentFormProps {
   medication: MedicationAdjustmentData
   onChange: (medication: MedicationAdjustmentData) => void
   onSave?: () => void
+  onFax?: (shouldFax: boolean) => Promise<void>
   isSaving?: boolean
   showSaveButton?: boolean
   showRequestedDate?: boolean
+  showFaxCheckbox?: boolean
   className?: string
 }
 
@@ -46,9 +51,11 @@ export function MedicationAdjustmentForm({
   medication,
   onChange,
   onSave,
+  onFax,
   isSaving = false,
   showSaveButton = true,
   showRequestedDate = true,
+  showFaxCheckbox = false,
   className
 }: MedicationAdjustmentFormProps) {
   
@@ -107,6 +114,17 @@ export function MedicationAdjustmentForm({
               placeholder="Enter frequency"
             />
           </div>
+          <div>
+            <Label className="text-sm font-medium">Supply (Days)</Label>
+            <Input
+              type="number"
+              value={medication.supply_days || ''}
+              onChange={(e) => handleFieldChange('supply_days', e.target.value ? parseInt(e.target.value) : undefined)}
+              placeholder="Enter supply duration (e.g., 30, 60, 90)"
+              min="1"
+              max="365"
+            />
+          </div>
           {showRequestedDate && medication.requested_date && (
             <div>
               <Label className="text-sm font-medium">Requested Date</Label>
@@ -126,6 +144,33 @@ export function MedicationAdjustmentForm({
             rows={3}
           />
         </div>
+
+        {/* Faxed checkbox */}
+        {showFaxCheckbox && (
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="faxed-clinical"
+              checked={!!medication.faxed}
+              onCheckedChange={async (checked) => {
+                if (onFax) {
+                  await onFax(checked)
+                }
+              }}
+              disabled={isSaving}
+            />
+            <Label htmlFor="faxed-clinical" className="text-sm font-medium">
+              Faxed to Pharmacy
+              {medication.faxed && medication.faxed !== 'pending' && (
+                <span className="text-xs text-muted-foreground ml-2">
+                  (Faxed on {(() => {
+                    const date = new Date(medication.faxed);
+                    return isNaN(date.getTime()) ? 'Invalid date' : date.toLocaleDateString();
+                  })()})
+                </span>
+              )}
+            </Label>
+          </div>
+        )}
 
         {showSaveButton && onSave && (
           <div className="flex justify-end pt-2">

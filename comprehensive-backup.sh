@@ -1,6 +1,9 @@
 #!/bin/bash
 # comprehensive-backup.sh - Complete database backup including schema and data
 
+# Set PATH for cron environment
+export PATH="/usr/local/bin:/usr/bin:/bin"
+
 BACKUP_DIR="./backups"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 BACKUP_FILE="$BACKUP_DIR/complete_backup_$TIMESTAMP.sql"
@@ -11,7 +14,7 @@ mkdir -p $BACKUP_DIR
 echo "🔄 Starting comprehensive backup at $(date)"
 
 # Full database dump including schema, data, and Supabase-specific elements
-docker exec supabase_db_joinomu-monorepo pg_dump \
+/usr/local/bin/docker exec supabase_db_joinomu-monorepo pg_dump \
   -U postgres \
   -d postgres \
   --verbose \

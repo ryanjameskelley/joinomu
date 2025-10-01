@@ -38,6 +38,10 @@ export interface MedicationCardProps {
    */
   estimatedDelivery?: string
   /**
+   * Optional next visit date
+   */
+  nextVisit?: string
+  /**
    * Optional edit handler - shows edit link when provided
    */
   onEdit?: () => void
@@ -64,6 +68,7 @@ export function MedicationCard({
   approvalId,
   orderNumber,
   estimatedDelivery,
+  nextVisit,
   onEdit,
   onTitleClick,
   className,
@@ -142,30 +147,40 @@ export function MedicationCard({
             <Separator orientation="vertical" className="mx-2 h-4" />
             <span>{supply}</span>
           </div>
-          {(orderDate || approvalId || orderNumber || estimatedDelivery) && (
+          {(orderDate || approvalId || orderNumber || estimatedDelivery || nextVisit) && (
             <div className="flex items-center text-xs text-muted-foreground pt-1">
               {orderNumber && (
                 <>
                   <span>{orderNumber}</span>
-                  {(approvalId || orderDate || estimatedDelivery) && <Separator orientation="vertical" className="mx-2 h-3" />}
+                  {(approvalId || orderDate || estimatedDelivery || nextVisit) && <Separator orientation="vertical" className="mx-2 h-3" />}
                 </>
               )}
               {approvalId && (
                 <>
                   <span>Approval: {approvalId.slice(0, 8)}...</span>
-                  {(orderDate || estimatedDelivery) && <Separator orientation="vertical" className="mx-2 h-3" />}
+                  {(orderDate || estimatedDelivery || nextVisit) && <Separator orientation="vertical" className="mx-2 h-3" />}
                 </>
               )}
               {orderDate && (
                 <>
                   <span>Ordered: {orderDate}</span>
-                  {estimatedDelivery && <Separator orientation="vertical" className="mx-2 h-3" />}
+                  {(estimatedDelivery || nextVisit) && <Separator orientation="vertical" className="mx-2 h-3" />}
                 </>
               )}
               {estimatedDelivery && (
-                <span>Estimated Delivery: {new Date(estimatedDelivery).toLocaleDateString('en-US', {
-                  month: '2-digit',
-                  day: '2-digit', 
+                <>
+                  <span>Estimated Delivery: {new Date(estimatedDelivery).toLocaleDateString('en-US', {
+                    month: '2-digit',
+                    day: '2-digit', 
+                    year: 'numeric'
+                  })}</span>
+                  {nextVisit && <Separator orientation="vertical" className="mx-2 h-3" />}
+                </>
+              )}
+              {nextVisit && (
+                <span>Next Visit: {new Date(nextVisit).toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
                   year: 'numeric'
                 })}</span>
               )}

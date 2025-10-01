@@ -10,6 +10,7 @@ const meta: Meta<typeof VisitClinicalNote> = {
   argTypes: {
     onMedicationChange: { action: 'medication changed' },
     onClinicalNoteChange: { action: 'clinical note changed' },
+    onMedicationFax: { action: 'medication faxed' },
     onSave: { action: 'clinical note saved' },
   },
 }

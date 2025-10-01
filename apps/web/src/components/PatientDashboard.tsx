@@ -186,13 +186,13 @@ export function PatientDashboard() {
         setRealMedicationData([])
       }
 
-      // Fetch scheduled appointments
-      console.log('🔍 Fetching appointments...')
-      const appointmentResult = await authService.getPatientAppointments(user.id)
-      console.log('🔍 Appointment result:', appointmentResult)
+      // Fetch scheduled appointments (only upcoming scheduled/confirmed visits)
+      console.log('🔍 Fetching upcoming appointments...')
+      const appointmentResult = await authService.getPatientAppointments(user.id, true)
+      console.log('🔍 Upcoming appointment result:', appointmentResult)
       
       if (appointmentResult.data && appointmentResult.data.length > 0) {
-        console.log(`✅ Found ${appointmentResult.data.length} appointments for patient`)
+        console.log(`✅ Found ${appointmentResult.data.length} upcoming scheduled appointments for patient`)
         const appointmentCards = appointmentResult.data.map((appointment: any, index: number) => {
           console.log(`🔍 Processing appointment ${index}:`, appointment)
           console.log(`🔍 Raw appointment data for appointment ${index}:`, JSON.stringify(appointment, null, 2))
@@ -227,7 +227,7 @@ export function PatientDashboard() {
         console.log('✅ Setting all appointment data:', appointmentCards)
         setRealAppointmentData(appointmentCards)
       } else {
-        console.log('⚠️ No appointments found')
+        console.log('⚠️ No upcoming scheduled appointments found')
         setRealAppointmentData([])
       }
     } catch (error) {
@@ -923,7 +923,7 @@ export function PatientDashboard() {
         checklistItems={!isOnboarded ? checklistItems : undefined}
         onChecklistItemClick={handleChecklistItemClick}
         medication={isOnboarded ? sampleMedication : undefined}
-        appointment={isOnboarded ? sampleAppointment : undefined}
+        appointment={undefined} // Use only real appointment data, not sample data
         onRescheduleAppointment={handleRescheduleAppointment}
         onMedicationAction={handleMedicationAction}
         onNavigate={handleNavigate}

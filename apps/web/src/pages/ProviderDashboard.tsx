@@ -228,6 +228,7 @@ export function ProviderDashboard() {
       // Convert Patient to ProviderPatientData format including medication preferences and visits
       const providerPatientData: ProviderPatientData = {
         id: patient.id,
+        profile_id: patient.profile_id,
         name: patient.name,
         email: patient.email,
         dateOfBirth: patient.date_of_birth,
@@ -272,6 +273,7 @@ export function ProviderDashboard() {
     dosage?: string
     frequency?: string
     providerNotes?: string
+    faxed?: boolean
   }) => {
     let savingToastId: string | number | undefined
     
@@ -396,7 +398,7 @@ export function ProviderDashboard() {
         activeItem={activeItem}
         showPatientTable={activeItem === 'Patients'}
         onNavigate={handleNavigate}
-        providerId={providerData?.id}
+        providerId={providerData?.profile_id}
         assignedPatients={assignedPatients}
         onPatientClick={handlePatientClick}
         onApprovalAction={handleApprovalAction}
@@ -415,7 +417,7 @@ export function ProviderDashboard() {
           }
         }}
         patient={selectedPatient}
-        providerId={providerData?.id}
+        providerId={providerData?.profile_id}
         initialTab={dialogInitialTab}
         initialVisitId={dialogInitialVisitId}
         initialMedicationId={dialogInitialMedicationId}

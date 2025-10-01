@@ -1,6 +1,9 @@
 #!/bin/bash
 # schema-backup.sh - Schema-only backup for quick reference
 
+# Set PATH for cron environment
+export PATH="/usr/local/bin:/usr/bin:/bin"
+
 BACKUP_DIR="./backups"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 SCHEMA_FILE="$BACKUP_DIR/schema_only_$TIMESTAMP.sql"
@@ -11,7 +14,7 @@ mkdir -p $BACKUP_DIR
 echo "🔄 Starting schema backup at $(date)"
 
 # Schema-only backup
-docker exec supabase_db_joinomu-monorepo pg_dump \
+/usr/local/bin/docker exec supabase_db_joinomu-monorepo pg_dump \
   -U postgres \
   -d postgres \
   --schema-only \
