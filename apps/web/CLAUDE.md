@@ -102,3 +102,8 @@ export function InputFile() {
     </div>
   )
 }
+
+Assignments:
+1. Use direct SQL inserts or API calls for data assignments
+2. Avoid database resets when working with existing user data
+3. Check if users exist before creating migrations that might delete them

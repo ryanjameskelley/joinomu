@@ -59,7 +59,7 @@ export function MedicationAdjustmentForm({
   className
 }: MedicationAdjustmentFormProps) {
   
-  const handleFieldChange = (field: keyof MedicationAdjustmentData, value: string) => {
+  const handleFieldChange = (field: keyof MedicationAdjustmentData, value: any) => {
     onChange({
       ...medication,
       [field]: value

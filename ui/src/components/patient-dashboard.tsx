@@ -43,7 +43,8 @@ export function PatientDashboard({
   realAppointmentData,
   onEditMedication,
   onEditAppointment,
-  onAddMedication
+  onAddMedication,
+  onRequestRefill
 }: {
   user?: {
     name: string
@@ -76,6 +77,7 @@ export function PatientDashboard({
     supply: string
     status: 'pending' | 'approved' | 'denied'
     estimatedDelivery?: string
+    nextPrescriptionDue?: string
   }[]
   realAppointmentData?: {
     id: string
@@ -92,6 +94,7 @@ export function PatientDashboard({
   onEditMedication?: (medicationId?: string) => void
   onEditAppointment?: (appointmentId?: string) => void
   onAddMedication?: () => void
+  onRequestRefill?: (medicationId: string) => void
 }) {
   return (
     <SidebarProvider>
@@ -162,7 +165,9 @@ export function PatientDashboard({
                           supply={medication.supply}
                           status={medication.status}
                           estimatedDelivery={medication.estimatedDelivery}
+                          nextPrescriptionDue={medication.nextPrescriptionDue}
                           onTitleClick={() => onEditMedication?.(medication.id)}
+                          onRequestRefill={onRequestRefill ? () => onRequestRefill(medication.id) : undefined}
                           className="w-full"
                         />
                       ))}

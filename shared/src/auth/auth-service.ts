@@ -669,7 +669,8 @@ class AuthService {
     status?: string; 
     frequency?: string; 
     providerNotes?: string;
-    faxed?: boolean
+    faxed?: boolean;
+    supplyDays?: number
   }, providerId?: string) {
     try {
       console.log('🔄 Updating medication preference:', preferenceId, preferences)
@@ -696,6 +697,14 @@ class AuthService {
       }
       if (preferences.faxed !== undefined) {
         updateData.faxed = preferences.faxed ? new Date().toISOString() : null
+      }
+      if (preferences.supplyDays !== undefined) {
+        updateData.supply_days = preferences.supplyDays
+      }
+      
+      // Reset refill_requested flag when status changes to approved
+      if (preferences.status === 'approved') {
+        updateData.refill_requested = false
       }
       
       console.log('🔍 Update data:', updateData)
@@ -744,6 +753,34 @@ class AuthService {
 
       return { success: true, data, error: null }
     } catch (error: any) {
+      return { success: false, error }
+    }
+  }
+
+  async requestPrescriptionRefill(preferenceId: string, patientProfileId: string) {
+    try {
+      console.log('🔄 Requesting prescription refill:', preferenceId, patientProfileId)
+      
+      const { data, error } = await supabase
+        .rpc('request_prescription_refill', {
+          p_preference_id: preferenceId,
+          p_patient_profile_id: patientProfileId
+        })
+
+      if (error) {
+        console.error('❌ Error requesting refill:', error)
+        return { success: false, error }
+      }
+      
+      console.log('✅ Refill request result:', data)
+      
+      if (data.success) {
+        return { success: true, data, error: null }
+      } else {
+        return { success: false, error: { message: data.error } }
+      }
+    } catch (error: any) {
+      console.error('❌ Exception requesting refill:', error)
       return { success: false, error }
     }
   }

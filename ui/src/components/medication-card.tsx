@@ -2,6 +2,7 @@ import * as React from "react"
 import { Card, CardContent } from "./card"
 import { Separator } from "./separator"
 import { Badge } from "./badge"
+import { Button } from "./button"
 import { cn } from "../lib/utils"
 
 export interface MedicationCardProps {
@@ -42,6 +43,10 @@ export interface MedicationCardProps {
    */
   nextVisit?: string
   /**
+   * Optional next prescription due date (ISO string)
+   */
+  nextPrescriptionDue?: string
+  /**
    * Optional edit handler - shows edit link when provided
    */
   onEdit?: () => void
@@ -49,6 +54,10 @@ export interface MedicationCardProps {
    * Optional title click handler - makes title a clickable link when provided
    */
   onTitleClick?: () => void
+  /**
+   * Optional refill request handler - shows Request Refill button when provided and conditions are met
+   */
+  onRequestRefill?: () => void
   /**
    * Optional additional CSS classes
    */
@@ -69,8 +78,10 @@ export function MedicationCard({
   orderNumber,
   estimatedDelivery,
   nextVisit,
+  nextPrescriptionDue,
   onEdit,
   onTitleClick,
+  onRequestRefill,
   className,
   onClick
 }: MedicationCardProps) {
@@ -91,6 +102,20 @@ export function MedicationCard({
         return 'outline' as const
     }
   }
+
+  // Check if refill request should be available (3 days before due date)
+  const shouldShowRefillButton = React.useMemo(() => {
+    if (!nextPrescriptionDue || !onRequestRefill || status === 'pending') {
+      return false
+    }
+
+    const today = new Date()
+    const dueDate = new Date(nextPrescriptionDue)
+    const daysDifference = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 3600 * 24))
+    
+    // Show refill button if due date is within 3 days (or past due)
+    return daysDifference <= 3
+  }, [nextPrescriptionDue, onRequestRefill, status])
 
   return (
     <Card 
@@ -132,13 +157,26 @@ export function MedicationCard({
                   Edit
                 </button>
               )}
-              {status && (
-                <Badge 
-                  variant={getStatusBadgeVariant(status)}
-                  className="capitalize text-xs"
+              {shouldShowRefillButton ? (
+                <Button
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onRequestRefill!()
+                  }}
+                  className="text-xs h-6 px-3"
                 >
-                  {status}
-                </Badge>
+                  Request Refill
+                </Button>
+              ) : (
+                status && (
+                  <Badge 
+                    variant={getStatusBadgeVariant(status)}
+                    className="capitalize text-xs"
+                  >
+                    {status}
+                  </Badge>
+                )
               )}
             </div>
           </div>
@@ -147,7 +185,7 @@ export function MedicationCard({
             <Separator orientation="vertical" className="mx-2 h-4" />
             <span>{supply}</span>
           </div>
-          {(orderDate || approvalId || orderNumber || estimatedDelivery || nextVisit) && (
+          {(orderDate || approvalId || orderNumber || estimatedDelivery || nextVisit || nextPrescriptionDue) && (
             <div className="flex items-center text-xs text-muted-foreground pt-1">
               {orderNumber && (
                 <>
@@ -178,7 +216,17 @@ export function MedicationCard({
                 </>
               )}
               {nextVisit && (
-                <span>Next Visit: {new Date(nextVisit).toLocaleDateString('en-US', {
+                <>
+                  <span>Next Visit: {new Date(nextVisit).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric'
+                  })}</span>
+                  {nextPrescriptionDue && <Separator orientation="vertical" className="mx-2 h-3" />}
+                </>
+              )}
+              {nextPrescriptionDue && (
+                <span>Next Refill Due: {new Date(nextPrescriptionDue).toLocaleDateString('en-US', {
                   month: 'short',
                   day: 'numeric',
                   year: 'numeric'

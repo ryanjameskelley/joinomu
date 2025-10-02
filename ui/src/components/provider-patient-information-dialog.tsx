@@ -129,6 +129,7 @@ interface ProviderPatientInformationDialogProps {
     frequency?: string
     providerNotes?: string
     faxed?: boolean
+    supplyDays?: number
   }) => Promise<void>
 }
 
@@ -456,7 +457,9 @@ export function ProviderPatientInformationDialog({
             status: pendingMedicationChanges.status,
             dosage: pendingMedicationChanges.preferred_dosage,
             frequency: pendingMedicationChanges.frequency,
-            providerNotes: pendingMedicationChanges.providerNotes
+            providerNotes: pendingMedicationChanges.providerNotes,
+            faxed: pendingMedicationChanges.status === 'approved',
+            supplyDays: pendingMedicationChanges.supply_days
           })
           
           console.log('Pending medication changes saved as part of clinical note')

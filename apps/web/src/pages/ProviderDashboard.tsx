@@ -274,6 +274,7 @@ export function ProviderDashboard() {
     frequency?: string
     providerNotes?: string
     faxed?: boolean
+    supplyDays?: number
   }) => {
     let savingToastId: string | number | undefined
     
