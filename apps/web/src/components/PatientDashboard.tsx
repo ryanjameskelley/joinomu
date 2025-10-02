@@ -22,6 +22,7 @@ export function PatientDashboard() {
     dosage: string
     supply: string
     status: 'pending' | 'approved' | 'denied'
+    nextPrescriptionDue?: string
   }[]>([])
   const [realAppointmentData, setRealAppointmentData] = useState<{
     id: string
@@ -171,6 +172,7 @@ export function PatientDashboard() {
             supply: med.frequency || '30 day supply',
             status: med.status || 'pending',
             estimatedDelivery: estimatedDelivery,
+            nextPrescriptionDue: med.next_prescription_due,
             // Add additional fields for editing
             preferenceId: med.id,
             medicationInfo: med.medications,
@@ -878,6 +880,44 @@ export function PatientDashboard() {
     }
   }
 
+  const handleRequestRefill = async (medicationId: string) => {
+    if (!user?.id) {
+      console.error('❌ No user ID available for refill request')
+      return
+    }
+
+    try {
+      console.log('🔄 Requesting refill for medication:', medicationId)
+      const result = await authService.requestPrescriptionRefill(medicationId, user.id)
+      
+      if (result.success) {
+        console.log('✅ Refill requested successfully')
+        showToast({
+          title: 'Refill Requested',
+          description: 'Your refill request has been submitted and is pending provider review',
+          variant: 'success'
+        })
+        
+        // Refresh medication data to show updated status
+        await fetchPostOnboardingData()
+      } else {
+        console.error('❌ Failed to request refill:', result.error)
+        showToast({
+          title: 'Refill Request Failed',
+          description: result.error?.message || 'Failed to submit refill request',
+          variant: 'error'
+        })
+      }
+    } catch (error) {
+      console.error('❌ Exception requesting refill:', error)
+      showToast({
+        title: 'Error',
+        description: 'An error occurred while requesting your refill',
+        variant: 'error'
+      })
+    }
+  }
+
   const handleNavigate = (itemOrUrl: string) => {
     console.log('Navigation clicked:', itemOrUrl)
     // Handle both item names and URLs
@@ -933,6 +973,7 @@ export function PatientDashboard() {
         onEditMedication={handleEditMedication}
         onEditAppointment={handleEditAppointment}
         onAddMedication={() => handleEditMedication()}
+        onRequestRefill={handleRequestRefill}
       />
       <MedicationPreferencesDialog
         open={medicationDialogOpen}

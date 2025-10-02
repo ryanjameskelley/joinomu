@@ -253,10 +253,11 @@ function ProviderApprovals({
             console.log(`🔍 All preferences for ${patient.name}:`, result.data.map(p => ({ id: p.id, medication: p.medication_name, status: p.status })))
             
             // Filter for pending and needs_review preferences and transform to our interface
+            // Only show pending preferences that were explicitly requested by patients (refill_requested = true)
             const pendingPreferences = result.data
               .filter(pref => {
-                console.log(`🔍 Checking preference ${pref.medication_name}: status = ${pref.status}`)
-                return pref.status === 'pending' || pref.status === 'needs_review'
+                console.log(`🔍 Checking preference ${pref.medication_name}: status = ${pref.status}, refill_requested = ${pref.refill_requested}`)
+                return (pref.status === 'pending' && pref.refill_requested === true) || pref.status === 'needs_review'
               })
               .map(pref => ({
                 id: pref.id,

@@ -1,0 +1,6 @@
+Wed Oct  1 19:47:18 PDT 2025: Launchd test backup started
+PATH: /usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/Library/Apple/usr/bin
+HOME: /Users/ryankelley
+Docker accessible: Yes
+Supabase container check: OK
+Wed Oct  1 19:47:18 PDT 2025: Launchd test backup completed
