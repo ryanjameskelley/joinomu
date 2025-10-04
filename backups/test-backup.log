@@ -1,6 +1,0 @@
-shell-init: error retrieving current directory: getcwd: cannot access parent directories: Operation not permitted
-/bin/bash: /Users/ryankelley/Desktop/Ryan's Macbook Pro/JoinOmu GLP-1/joinomu-monorepo/schema-backup.sh: Operation not permitted
-shell-init: error retrieving current directory: getcwd: cannot access parent directories: Operation not permitted
-/bin/bash: /Users/ryankelley/Desktop/Ryan's Macbook Pro/JoinOmu GLP-1/joinomu-monorepo/backup-schema.sh: No such file or directory
-shell-init: error retrieving current directory: getcwd: cannot access parent directories: Operation not permitted
-/bin/bash: /Users/ryankelley/Desktop/Ryan's Macbook Pro/JoinOmu GLP-1/joinomu-monorepo/schema-backup.sh: Operation not permitted

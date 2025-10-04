@@ -698,9 +698,10 @@ export function EnhancedPatientInformationDialog({
                             <Badge variant={
                               order.fulfillment_status === 'delivered' ? 'default' :
                               order.fulfillment_status === 'shipped' ? 'secondary' :
+                              order.fulfillment_status === 'pharmacy_fulfilled' ? 'secondary' :
                               order.fulfillment_status === 'processing' ? 'outline' : 'outline'
                             } className="text-xs">
-                              {order.fulfillment_status}
+                              {order.fulfillment_status === 'pharmacy_fulfilled' ? 'Pharmacy Fulfilled' : order.fulfillment_status}
                             </Badge>
                           </div>
                         </div>
@@ -802,6 +803,7 @@ export function EnhancedPatientInformationDialog({
                           <SelectContent>
                             <SelectItem value="pending">Pending</SelectItem>
                             <SelectItem value="processing">Processing</SelectItem>
+                            <SelectItem value="pharmacy_fulfilled">Pharmacy Fulfilled</SelectItem>
                             <SelectItem value="shipped">Shipped</SelectItem>
                             <SelectItem value="delivered">Delivered</SelectItem>
                           </SelectContent>
@@ -910,9 +912,10 @@ export function EnhancedPatientInformationDialog({
                           <Badge variant={
                             selectedOrder.fulfillment_status === 'delivered' ? 'default' :
                             selectedOrder.fulfillment_status === 'shipped' ? 'secondary' :
+                            selectedOrder.fulfillment_status === 'pharmacy_fulfilled' ? 'secondary' :
                             selectedOrder.fulfillment_status === 'processing' ? 'outline' : 'outline'
                           }>
-                            {selectedOrder.fulfillment_status}
+                            {selectedOrder.fulfillment_status === 'pharmacy_fulfilled' ? 'Pharmacy Fulfilled' : selectedOrder.fulfillment_status}
                           </Badge>
                         </div>
                       </div>

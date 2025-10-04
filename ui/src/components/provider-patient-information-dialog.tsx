@@ -170,10 +170,13 @@ export function ProviderPatientInformationDialog({
   
   // Update activeTab when initialTab changes
   React.useEffect(() => {
+    console.log('🔍 DIALOG: Initial tab effect triggered. initialTab:', initialTab)
     if (initialTab) {
+      console.log('🔍 DIALOG: Setting active tab to:', initialTab)
       setActiveTab(initialTab)
     } else {
       // Reset to default tab when initialTab is undefined (patient table click)
+      console.log('🔍 DIALOG: No initial tab provided, defaulting to Patient Information')
       setActiveTab("Patient Information")
       // Also clear any selected medication/visit state to reset breadcrumb
       setSelectedMedication(null)
@@ -189,13 +192,23 @@ export function ProviderPatientInformationDialog({
 
   // Auto-select visit when initialVisitId is provided
   React.useEffect(() => {
-    if (initialVisitId && patient?.visits) {
+    console.log('🔍 DIALOG: Auto-select visit effect triggered')
+    console.log('🔍 DIALOG: initialVisitId:', initialVisitId)
+    console.log('🔍 DIALOG: patient?.visits?.length:', patient?.visits?.length)
+    console.log('🔍 DIALOG: activeTab:', activeTab)
+    
+    if (initialVisitId && patient?.visits && patient.visits.length > 0) {
       const visit = patient.visits.find(v => v.id === initialVisitId)
       if (visit) {
+        console.log('🔍 DIALOG: Auto-selecting visit:', visit.id, 'for patient:', patient.name)
         handleVisitSelect(visit)
+      } else {
+        console.warn('⚠️ DIALOG: Visit with ID', initialVisitId, 'not found in patient visits:', patient.visits.map(v => v.id))
       }
+    } else {
+      console.log('🔍 DIALOG: Not auto-selecting visit - missing conditions')
     }
-  }, [initialVisitId, patient?.visits])
+  }, [initialVisitId, patient?.visits, patient?.name, activeTab])
 
   // Auto-select medication when initialMedicationId is provided
   React.useEffect(() => {
@@ -1281,18 +1294,19 @@ export function ProviderPatientInformationDialog({
                       patientName={patient.name}
                       patientProfileId={patient.profile_id}
                       providerProfileId={providerId}
-                      medication={pendingMedicationChanges || (patient.medicationPreferences && patient.medicationPreferences.length > 0 ? {
-                        id: patient.medicationPreferences[0].id,
-                        medication_name: patient.medicationPreferences[0].medication_name,
-                        preferred_dosage: patient.medicationPreferences[0].preferred_dosage,
-                        frequency: patient.medicationPreferences[0].frequency,
-                        status: patient.medicationPreferences[0].status,
-                        providerNotes: patient.medicationPreferences[0].notes,
-                        faxed: patient.medicationPreferences[0].faxed
-                      } : undefined)}
+                      medications={patient.medicationPreferences ? patient.medicationPreferences
+                        .map(pref => ({
+                          id: pref.id,
+                          medication_name: pref.medication_name,
+                          preferred_dosage: pref.preferred_dosage,
+                          frequency: pref.frequency,
+                          status: pref.status,
+                          providerNotes: pref.notes,
+                          faxed: null // Always start with unchecked fax checkbox for new visits
+                        })) : []}
                       clinicalNote={clinicalNoteData}
-                      onMedicationChange={(medication) => {
-                        console.log('Medication changed locally:', medication)
+                      onMedicationChange={(medicationId, medication) => {
+                        console.log('Medication changed locally:', medicationId, medication)
                         // Store the medication changes locally, don't save to API yet
                         setPendingMedicationChanges(medication)
                       }}
