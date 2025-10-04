@@ -23,6 +23,7 @@ export function PatientDashboard() {
     supply: string
     status: 'pending' | 'approved' | 'denied'
     nextPrescriptionDue?: string
+    fulfillmentStatus?: string
   }[]>([])
   const [realAppointmentData, setRealAppointmentData] = useState<{
     id: string
@@ -145,39 +146,49 @@ export function PatientDashboard() {
           console.log(`🔍 All medication fields:`, Object.keys(med))
           console.log(`🔍 Medications object:`, med.medications)
           
-          // Get the estimated delivery date from the most recent medication order for this preference
+          // Get the estimated delivery date and fulfillment status from the most recent medication order for this preference
           let estimatedDelivery = null
+          let fulfillmentStatus = null
           try {
             const ordersResult = await authService.getOrdersByPreferenceId(med.id)
             if (ordersResult.data && ordersResult.data.length > 0) {
-              // Get the most recent order with an estimated delivery date
-              const orderWithDelivery = ordersResult.data
-                .filter((order: any) => order.estimated_delivery)
+              // Get the most recent order
+              const mostRecentOrder = ordersResult.data
                 .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
               
-              if (orderWithDelivery) {
-                estimatedDelivery = orderWithDelivery.estimated_delivery
-                console.log(`🔍 Found estimated delivery for ${med.medications?.name}:`, estimatedDelivery)
+              if (mostRecentOrder) {
+                estimatedDelivery = mostRecentOrder.estimated_delivery
+                fulfillmentStatus = mostRecentOrder.fulfillment_status
+                console.log(`🔍 Found order data for ${med.medications?.name}:`, {
+                  estimatedDelivery,
+                  fulfillmentStatus,
+                  rawOrder: mostRecentOrder
+                })
+              } else {
+                console.log(`⚠️ No recent order found for ${med.medications?.name}, orders:`, ordersResult.data)
               }
             }
           } catch (error) {
-            console.log(`⚠️ Could not fetch delivery date for medication ${med.medications?.name}:`, error)
+            console.log(`⚠️ Could not fetch order data for medication ${med.medications?.name}:`, error)
           }
           
-          return {
+          const medicationCard = {
             id: med.id, // This is the preference ID
             medicationId: med.medication_id, // Keep the original medication ID for lookup
             name: med.medications?.name || 'Unknown Medication',
             dosage: med.preferred_dosage || 'Not specified',
-            supply: med.frequency || '30 day supply',
+            supply: med.supply_days ? `${med.supply_days} day supply` : '30 day supply',
             status: med.status || 'pending',
             estimatedDelivery: estimatedDelivery,
+            fulfillmentStatus: fulfillmentStatus,
             nextPrescriptionDue: med.next_prescription_due,
             // Add additional fields for editing
             preferenceId: med.id,
             medicationInfo: med.medications,
             dosageInfo: med.medication_dosages
           }
+          console.log(`📋 Final medication card for ${med.medications?.name}:`, medicationCard)
+          return medicationCard
         }))
         console.log('✅ Final medication cards to display:', medicationCards)
         setRealMedicationData(medicationCards)

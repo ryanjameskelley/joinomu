@@ -157,18 +157,31 @@ export function ProviderDashboard() {
     )
   }
 
-  const handlePatientClick = async (patient: Patient) => {
+  const handlePatientClick = async (patient: Patient, skipInitialTabClear = false) => {
     // Prevent multiple simultaneous calls
     if (isLoadingPatient) {
       console.log('🔄 Already loading patient, ignoring click')
       return
     }
     
+    console.log('🔍 PATIENT CLICK: skipInitialTabClear:', skipInitialTabClear)
+    console.log('🔍 PATIENT CLICK: Current initial values:', {
+      dialogInitialTab,
+      dialogInitialVisitId,
+      dialogInitialMedicationId
+    })
+    
     // Clear any initial tab/ID settings when opening from patient table
     // This ensures clicks from the patient table always start at "Patient Information"
-    setDialogInitialTab(undefined)
-    setDialogInitialVisitId(undefined)
-    setDialogInitialMedicationId(undefined)
+    // Only clear these if they weren't already set by another handler (like handleVisitClick)
+    if (!skipInitialTabClear) {
+      console.log('🔍 PATIENT CLICK: Clearing initial tab settings')
+      setDialogInitialTab(undefined)
+      setDialogInitialVisitId(undefined)
+      setDialogInitialMedicationId(undefined)
+    } else {
+      console.log('🔍 PATIENT CLICK: Preserving initial tab settings')
+    }
     
     // Fetch patient medication preferences and appointments
     try {
@@ -252,6 +265,7 @@ export function ProviderDashboard() {
       // Fallback to basic patient data without preferences or visits
       const providerPatientData: ProviderPatientData = {
         id: patient.id,
+        profile_id: patient.profile_id,
         name: patient.name,
         email: patient.email,
         treatmentType: patient.treatmentType,
@@ -264,6 +278,7 @@ export function ProviderDashboard() {
       setSelectedPatient(providerPatientData)
       setDialogOpen(true)
     } finally {
+      console.log('🔄 Resetting isLoadingPatient to false')
       setIsLoadingPatient(false)
     }
   }
@@ -357,6 +372,13 @@ export function ProviderDashboard() {
 
   const handleVisitClick = async (visit: ProviderVisit) => {
     console.log('Visit clicked:', visit)
+    
+    // Prevent multiple simultaneous calls
+    if (isLoadingPatient) {
+      console.log('🔄 Already loading patient for visit, ignoring click')
+      return
+    }
+    
     // Find the patient by patient_id from the visit
     const patient = assignedPatients.find(p => p.id === visit.patient_id)
     if (!patient) {
@@ -364,14 +386,26 @@ export function ProviderDashboard() {
       return
     }
     
-    // Open the patient dialog with Visits tab and auto-select the specific visit
-    await handlePatientClick(patient)
+    // Set the initial tab and visit ID before opening dialog
+    console.log('🔍 VISIT CLICK: Setting initial tab to Visits and visit ID to:', visit.id)
     setDialogInitialTab('Visits')
     setDialogInitialVisitId(visit.id)
+    setDialogInitialMedicationId(undefined)
+    
+    // Open the patient dialog
+    console.log('🔍 VISIT CLICK: Opening patient dialog for:', patient.name)
+    await handlePatientClick(patient, true) // Skip clearing initial tab settings
   }
 
   const handleMedicationClick = async (preference: any) => {
     console.log('Medication preference clicked:', preference)
+    
+    // Prevent multiple simultaneous calls
+    if (isLoadingPatient) {
+      console.log('🔄 Already loading patient for medication, ignoring click')
+      return
+    }
+    
     // Find the patient by patient_id from the preference
     const patient = assignedPatients.find(p => p.name === preference.patient_name)
     if (!patient) {
@@ -379,10 +413,13 @@ export function ProviderDashboard() {
       return
     }
     
-    // Open the patient dialog with Medications tab and auto-select the specific medication
-    await handlePatientClick(patient)
+    // Set the initial tab and medication ID before opening dialog
     setDialogInitialTab('Medications')
     setDialogInitialMedicationId(preference.id)
+    setDialogInitialVisitId(undefined)
+    
+    // Open the patient dialog
+    await handlePatientClick(patient, true) // Skip clearing initial tab settings
   }
 
   const userData = {
@@ -409,6 +446,13 @@ export function ProviderDashboard() {
       <ProviderPatientInformationDialog
         open={dialogOpen}
         onOpenChange={(open) => {
+          console.log('🔍 DIALOG: Open state changing to:', open)
+          console.log('🔍 DIALOG: Current props when opening:', {
+            initialTab: dialogInitialTab,
+            initialVisitId: dialogInitialVisitId,
+            initialMedicationId: dialogInitialMedicationId,
+            patientName: selectedPatient?.name
+          })
           setDialogOpen(open)
           if (!open) {
             // Clear state when dialog closes

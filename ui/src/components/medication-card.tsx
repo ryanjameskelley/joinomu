@@ -39,6 +39,10 @@ export interface MedicationCardProps {
    */
   estimatedDelivery?: string
   /**
+   * Optional fulfillment status
+   */
+  fulfillmentStatus?: string
+  /**
    * Optional next visit date
    */
   nextVisit?: string
@@ -46,6 +50,18 @@ export interface MedicationCardProps {
    * Optional next prescription due date (ISO string)
    */
   nextPrescriptionDue?: string
+  /**
+   * Whether a refill has been requested by the patient
+   */
+  refillRequested?: boolean
+  /**
+   * Date when the refill was last requested
+   */
+  refillRequestedDate?: string
+  /**
+   * Date when the medication was last approved
+   */
+  approvalDate?: string
   /**
    * Optional edit handler - shows edit link when provided
    */
@@ -77,8 +93,12 @@ export function MedicationCard({
   approvalId,
   orderNumber,
   estimatedDelivery,
+  fulfillmentStatus,
   nextVisit,
   nextPrescriptionDue,
+  refillRequested,
+  refillRequestedDate,
+  approvalDate,
   onEdit,
   onTitleClick,
   onRequestRefill,
@@ -103,9 +123,54 @@ export function MedicationCard({
     }
   }
 
+  // Check if estimated delivery date has passed
+  const hasEstimatedDeliveryPassed = React.useMemo(() => {
+    if (!estimatedDelivery) return false
+    const today = new Date()
+    const deliveryDate = new Date(estimatedDelivery)
+    // Set both dates to start of day for accurate comparison
+    today.setHours(0, 0, 0, 0)
+    deliveryDate.setHours(0, 0, 0, 0)
+    return deliveryDate < today
+  }, [estimatedDelivery])
+
   // Check if refill request should be available (3 days before due date)
   const shouldShowRefillButton = React.useMemo(() => {
-    if (!nextPrescriptionDue || !onRequestRefill || status === 'pending') {
+    // Don't show refill button if no due date or no handler
+    if (!nextPrescriptionDue || !onRequestRefill) {
+      return false
+    }
+
+    // Don't show for final statuses regardless of refill request status
+    const finalStatuses = ['denied', 'discontinued', 'shipped', 'delivered']
+    if (finalStatuses.includes(status || '')) {
+      return false
+    }
+
+    // If status is pending (refill request submitted), don't show button
+    if (status === 'pending') {
+      return false
+    }
+
+    // If status is approved and refill was requested, check if approval came after refill request
+    if (status === 'approved' && refillRequested) {
+      // If we have both dates, compare them
+      if (refillRequestedDate && approvalDate) {
+        const refillDate = new Date(refillRequestedDate)
+        const approvalDateTime = new Date(approvalDate)
+        // Only hide button if approval came after refill request
+        if (approvalDateTime > refillDate) {
+          return false
+        }
+        // If approval is before refill request, show button (patient can request again)
+      } else {
+        // Fallback: if we don't have dates but refill was requested and status is approved
+        return false
+      }
+    }
+
+    // Only show for 'approved' or 'active' medications
+    if (!['approved', 'active'].includes(status || '')) {
       return false
     }
 
@@ -115,7 +180,7 @@ export function MedicationCard({
     
     // Show refill button if due date is within 3 days (or past due)
     return daysDifference <= 3
-  }, [nextPrescriptionDue, onRequestRefill, status])
+  }, [nextPrescriptionDue, onRequestRefill, status, refillRequested, refillRequestedDate, approvalDate])
 
   return (
     <Card 
@@ -185,7 +250,7 @@ export function MedicationCard({
             <Separator orientation="vertical" className="mx-2 h-4" />
             <span>{supply}</span>
           </div>
-          {(orderDate || approvalId || orderNumber || estimatedDelivery || nextVisit || nextPrescriptionDue) && (
+          {(orderDate || approvalId || orderNumber || estimatedDelivery || fulfillmentStatus || nextVisit || nextPrescriptionDue) && (
             <div className="flex items-center text-xs text-muted-foreground pt-1">
               {orderNumber && (
                 <>
@@ -202,17 +267,23 @@ export function MedicationCard({
               {orderDate && (
                 <>
                   <span>Ordered: {orderDate}</span>
-                  {(estimatedDelivery || nextVisit) && <Separator orientation="vertical" className="mx-2 h-3" />}
+                  {((fulfillmentStatus && fulfillmentStatus !== 'delivered' && !hasEstimatedDeliveryPassed) || (estimatedDelivery && !hasEstimatedDeliveryPassed) || nextVisit || nextPrescriptionDue) && <Separator orientation="vertical" className="mx-2 h-3" />}
                 </>
               )}
-              {estimatedDelivery && (
+              {fulfillmentStatus && fulfillmentStatus !== 'delivered' && !hasEstimatedDeliveryPassed && (
+                <>
+                  <span>Order Status: {fulfillmentStatus === 'pharmacy_fulfilled' ? 'Pharmacy Fulfilled' : fulfillmentStatus.charAt(0).toUpperCase() + fulfillmentStatus.slice(1)}</span>
+                  {(estimatedDelivery || nextVisit || nextPrescriptionDue) && <Separator orientation="vertical" className="mx-2 h-3" />}
+                </>
+              )}
+              {estimatedDelivery && !hasEstimatedDeliveryPassed && (
                 <>
                   <span>Estimated Delivery: {new Date(estimatedDelivery).toLocaleDateString('en-US', {
                     month: '2-digit',
                     day: '2-digit', 
                     year: 'numeric'
                   })}</span>
-                  {nextVisit && <Separator orientation="vertical" className="mx-2 h-3" />}
+                  {(nextVisit || nextPrescriptionDue) && <Separator orientation="vertical" className="mx-2 h-3" />}
                 </>
               )}
               {nextVisit && (

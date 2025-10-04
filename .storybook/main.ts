@@ -11,7 +11,13 @@ const config: StorybookConfig = {
   addons: [
     '@storybook/addon-onboarding',
     '@storybook/addon-links',
-    '@storybook/addon-essentials',
+    {
+      name: '@storybook/addon-essentials',
+      options: {
+        viewport: true,
+      }
+    },
+    '@storybook/addon-viewport',
     '@storybook/addon-interactions',
     '@storybook/addon-a11y',
     '@storybook/addon-docs',

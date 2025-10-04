@@ -59,23 +59,58 @@ export function MedicationAdjustmentForm({
   className
 }: MedicationAdjustmentFormProps) {
   
-  const handleFieldChange = (field: keyof MedicationAdjustmentData, value: any) => {
-    onChange({
-      ...medication,
+  // Internal state for form fields to ensure immediate UI updates
+  const [formData, setFormData] = React.useState<MedicationAdjustmentData>(medication)
+  
+  // Update internal state when medication prop changes (for external updates)
+  React.useEffect(() => {
+    setFormData(medication)
+  }, [medication])
+  
+  // Debounced onChange to prevent excessive parent updates
+  const debouncedOnChange = React.useMemo(() => {
+    let timeoutId: NodeJS.Timeout
+    return (updatedData: MedicationAdjustmentData) => {
+      clearTimeout(timeoutId)
+      timeoutId = setTimeout(() => {
+        onChange(updatedData)
+      }, 100) // 100ms debounce
+    }
+  }, [onChange])
+  
+  const handleFieldChange = React.useCallback((field: keyof MedicationAdjustmentData, value: any) => {
+    const updatedData = {
+      ...formData,
       [field]: value
-    })
-  }
+    }
+    
+    // Update internal state immediately for responsive UI
+    setFormData(updatedData)
+    
+    // Notify parent with debounce
+    debouncedOnChange(updatedData)
+  }, [formData, debouncedOnChange])
+
+  const handleFaxChange = React.useCallback(async (checked: boolean) => {
+    if (onFax) {
+      try {
+        await onFax(checked)
+      } catch (error) {
+        console.error('Error handling fax change:', error)
+      }
+    }
+  }, [onFax])
 
   return (
     <Card className={className}>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg">{medication.medication_name}</CardTitle>
+          <CardTitle className="text-lg">{formData.medication_name}</CardTitle>
           <Badge 
             variant="secondary" 
-            className={statusColors[medication.status]}
+            className={statusColors[formData.status]}
           >
-            {statusLabels[medication.status]}
+            {statusLabels[formData.status]}
           </Badge>
         </div>
       </CardHeader>
@@ -84,7 +119,7 @@ export function MedicationAdjustmentForm({
           <div>
             <Label className="text-sm font-medium">Status</Label>
             <Select 
-              value={medication.status} 
+              value={formData.status} 
               onValueChange={(value) => handleFieldChange('status', value)}
             >
               <SelectTrigger>
@@ -101,7 +136,7 @@ export function MedicationAdjustmentForm({
           <div>
             <Label className="text-sm font-medium">Dosage</Label>
             <Input
-              value={medication.preferred_dosage}
+              value={formData.preferred_dosage}
               onChange={(e) => handleFieldChange('preferred_dosage', e.target.value)}
               placeholder="Enter dosage"
             />
@@ -109,7 +144,7 @@ export function MedicationAdjustmentForm({
           <div>
             <Label className="text-sm font-medium">Frequency</Label>
             <Input
-              value={medication.frequency || ''}
+              value={formData.frequency || ''}
               onChange={(e) => handleFieldChange('frequency', e.target.value)}
               placeholder="Enter frequency"
             />
@@ -118,18 +153,18 @@ export function MedicationAdjustmentForm({
             <Label className="text-sm font-medium">Supply (Days)</Label>
             <Input
               type="number"
-              value={medication.supply_days || ''}
+              value={formData.supply_days || ''}
               onChange={(e) => handleFieldChange('supply_days', e.target.value ? parseInt(e.target.value) : undefined)}
               placeholder="Enter supply duration (e.g., 30, 60, 90)"
               min="1"
               max="365"
             />
           </div>
-          {showRequestedDate && medication.requested_date && (
+          {showRequestedDate && formData.requested_date && (
             <div>
               <Label className="text-sm font-medium">Requested Date</Label>
               <p className="text-sm text-muted-foreground mt-1">
-                {new Date(medication.requested_date).toLocaleDateString()}
+                {new Date(formData.requested_date).toLocaleDateString()}
               </p>
             </div>
           )}
@@ -138,7 +173,7 @@ export function MedicationAdjustmentForm({
         <div>
           <Label className="text-sm font-medium">Provider Notes</Label>
           <Textarea
-            value={medication.providerNotes || ''}
+            value={formData.providerNotes || ''}
             onChange={(e) => handleFieldChange('providerNotes', e.target.value)}
             placeholder="Add provider notes..."
             rows={3}
@@ -149,21 +184,17 @@ export function MedicationAdjustmentForm({
         {showFaxCheckbox && (
           <div className="flex items-center space-x-2">
             <Checkbox
-              id="faxed-clinical"
-              checked={!!medication.faxed}
-              onCheckedChange={async (checked) => {
-                if (onFax) {
-                  await onFax(checked)
-                }
-              }}
+              id={`faxed-clinical-${formData.id}`}
+              checked={!!formData.faxed}
+              onCheckedChange={handleFaxChange}
               disabled={isSaving}
             />
-            <Label htmlFor="faxed-clinical" className="text-sm font-medium">
+            <Label htmlFor={`faxed-clinical-${formData.id}`} className="text-sm font-medium">
               Faxed to Pharmacy
-              {medication.faxed && medication.faxed !== 'pending' && (
+              {formData.faxed && formData.faxed !== 'pending' && (
                 <span className="text-xs text-muted-foreground ml-2">
                   (Faxed on {(() => {
-                    const date = new Date(medication.faxed);
+                    const date = new Date(formData.faxed);
                     return isNaN(date.getTime()) ? 'Invalid date' : date.toLocaleDateString();
                   })()})
                 </span>

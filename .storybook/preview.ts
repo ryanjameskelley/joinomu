@@ -1,4 +1,5 @@
 import type { Preview } from '@storybook/react'
+import { INITIAL_VIEWPORTS } from '@storybook/addon-viewport'
 import * as React from 'react'
 import '../apps/web/src/index.css'
 
@@ -39,6 +40,32 @@ const preview: Preview = {
       toc: true,
     },
     layout: 'padded',
+    viewport: {
+      viewports: {
+        ...INITIAL_VIEWPORTS,
+        mobile: {
+          name: 'Mobile',
+          styles: {
+            width: '375px',
+            height: '667px',
+          },
+        },
+        tablet: {
+          name: 'Tablet',
+          styles: {
+            width: '768px',
+            height: '1024px',
+          },
+        },
+        desktop: {
+          name: 'Desktop',
+          styles: {
+            width: '1440px',
+            height: '900px',
+          },
+        },
+      },
+    },
   },
   globalTypes: {
     theme: {

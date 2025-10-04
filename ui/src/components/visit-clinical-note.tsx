@@ -40,9 +40,9 @@ export interface VisitClinicalNoteProps {
   patientName: string
   patientProfileId?: string  // Add patient profile ID for fax creation
   providerProfileId?: string  // Add provider profile ID for fax creation
-  medication?: MedicationAdjustmentData
+  medications?: MedicationAdjustmentData[]  // Changed to array
   clinicalNote?: ClinicalNoteData
-  onMedicationChange?: (medication: MedicationAdjustmentData) => void
+  onMedicationChange?: (medicationId: string, medication: MedicationAdjustmentData) => void  // Added medicationId parameter
   onClinicalNoteChange?: (clinicalNote: ClinicalNoteData) => void
   onMedicationFax?: (medicationId: string, shouldFax: boolean, patientProfileId?: string, providerProfileId?: string) => Promise<void>
   onSave?: () => void
@@ -55,7 +55,7 @@ export function VisitClinicalNote({
   patientName,
   patientProfileId,
   providerProfileId,
-  medication,
+  medications = [],
   clinicalNote,
   onMedicationChange,
   onClinicalNoteChange,
@@ -80,36 +80,73 @@ export function VisitClinicalNote({
     }
   )
 
-  // Track medication state locally to ensure it's editable
-  const [localMedication, setLocalMedication] = React.useState<MedicationAdjustmentData | null>(medication || null)
+  // Track medication state locally with stable keys to prevent re-renders
+  const [medicationStates, setMedicationStates] = React.useState<{[id: string]: MedicationAdjustmentData}>(() => {
+    const initial: {[id: string]: MedicationAdjustmentData} = {}
+    medications.forEach(med => {
+      initial[med.id] = { ...med }
+    })
+    return initial
+  })
   
   // Track whether fax should be sent when form is saved
-  const [shouldFaxOnSave, setShouldFaxOnSave] = React.useState<boolean>(false)
+  const [shouldFaxOnSave, setShouldFaxOnSave] = React.useState<{[medicationId: string]: boolean}>({})
 
-  // Update local medication when prop changes
+  // Update medication states when prop changes (only add new medications, preserve existing state)
   React.useEffect(() => {
-    if (medication) {
-      setLocalMedication(medication)
-    }
-  }, [medication])
+    setMedicationStates(prev => {
+      const updated = { ...prev }
+      medications.forEach(med => {
+        if (!updated[med.id]) {
+          // Only add new medications that don't exist in state
+          updated[med.id] = { ...med }
+        }
+        // Never override existing state to preserve user input
+      })
+      return updated
+    })
+  }, [medications])
 
-  // Auto-generate visit summary when medication changes
+  // Convert medication states back to array for rendering
+  const localMedications = React.useMemo(() => {
+    return medications.map(med => {
+      const state = medicationStates[med.id]
+      // Always prefer the state over the original medication if it exists
+      return state ? state : med
+    })
+  }, [medications, medicationStates])
+
+  // Auto-generate visit summary when medications change (temporarily disabled to prevent loops)
   React.useEffect(() => {
-    if (localMedication && localMedication.status === 'approved') {
-      const autoSummary = generateVisitSummary(
-        localMedication.medication_name,
-        localMedication.preferred_dosage,
-        localMedication.frequency || 'as needed'
-      )
+    console.log('🔍 VISIT SUMMARY: Effect triggered, localMedications.length:', localMedications.length)
+    // Temporarily disabled auto-summary to debug infinite loop
+    /*
+    const approvedMedications = localMedications.filter(med => med.status === 'approved')
+    if (approvedMedications.length > 0) {
+      const autoSummary = generateVisitSummaryForMultipleMedications(approvedMedications)
       
       const updatedNote = { ...noteData, visitSummary: autoSummary }
       setNoteData(updatedNote)
       onClinicalNoteChange?.(updatedNote)
     }
-  }, [localMedication?.status, localMedication?.medication_name, localMedication?.preferred_dosage, localMedication?.frequency])
+    */
+  }, [localMedications])
 
   const generateVisitSummary = (medicationName: string, dosage: string, supply: string) => {
     return `Patient and I discussed their weight loss goals and ${medicationName} ${dosage} was prescribed for ${supply}. The patient should plan on a follow up visit in 30 days to continue their treatment.`
+  }
+
+  const generateVisitSummaryForMultipleMedications = (medications: MedicationAdjustmentData[]) => {
+    if (medications.length === 1) {
+      const med = medications[0]
+      return generateVisitSummary(med.medication_name, med.preferred_dosage, med.frequency || 'as needed')
+    }
+    
+    const medicationList = medications.map(med => 
+      `${med.medication_name} ${med.preferred_dosage}`
+    ).join(', ')
+    
+    return `Patient and I discussed their weight loss goals and multiple medications were prescribed: ${medicationList}. The patient should plan on a follow up visit in 30 days to continue their treatment.`
   }
 
   const formatDate = (dateString: string) => {
@@ -170,30 +207,35 @@ export function VisitClinicalNote({
 
   const handleSave = async () => {
     try {
-      console.log('🔍 handleSave called - shouldFaxOnSave:', shouldFaxOnSave, 'localMedication:', !!localMedication, 'onMedicationFax:', !!onMedicationFax)
+      console.log('🔍 handleSave called - shouldFaxOnSave:', shouldFaxOnSave, 'localMedications:', localMedications.length, 'onMedicationFax:', !!onMedicationFax)
       
       // First save the clinical note
       if (onSave) {
         await onSave()
       }
       
-      // Then execute fax if needed
-      if (shouldFaxOnSave && localMedication && onMedicationFax) {
-        console.log('🔍 Executing fax for medication:', localMedication.id, 'patient:', patientProfileId, 'provider:', providerProfileId)
-        console.log('🔍 Props received - patientProfileId:', patientProfileId, 'providerProfileId:', providerProfileId)
-        await onMedicationFax(localMedication.id, true, patientProfileId, providerProfileId)
-        
-        // Update local medication state to reflect actual faxed status
-        const updatedMedication = {
-          ...localMedication,
-          faxed: new Date().toISOString()
+      // Then execute fax for medications that need it
+      for (const medication of localMedications) {
+        if (shouldFaxOnSave[medication.id] && onMedicationFax) {
+          console.log('🔍 Executing fax for medication:', medication.id, 'patient:', patientProfileId, 'provider:', providerProfileId)
+          console.log('🔍 Props received - patientProfileId:', patientProfileId, 'providerProfileId:', providerProfileId)
+          await onMedicationFax(medication.id, true, patientProfileId, providerProfileId)
+          
+          // Update medication state to reflect actual faxed status
+          const updatedMedication = {
+            ...medication,
+            faxed: new Date().toISOString()
+          }
+          setMedicationStates(prev => ({
+            ...prev,
+            [medication.id]: updatedMedication
+          }))
+          onMedicationChange?.(medication.id, updatedMedication)
         }
-        setLocalMedication(updatedMedication)
-        onMedicationChange?.(updatedMedication)
-        
-        // Reset fax intent
-        setShouldFaxOnSave(false)
       }
+      
+      // Reset fax intents
+      setShouldFaxOnSave({})
     } catch (error) {
       console.error('Error saving clinical note and faxing:', error)
     }
@@ -257,38 +299,60 @@ export function VisitClinicalNote({
       </Card>
 
       {/* Medication Adjustments */}
-      {localMedication && (
+      {localMedications.length > 0 && (
         <div>
           <h3 className="text-lg font-semibold mb-4">Medication Adjustments</h3>
-          <MedicationAdjustmentForm
-            medication={localMedication}
-            showFaxCheckbox={true}
-            onChange={(updatedMedication) => {
-              console.log('Medication form changed:', updatedMedication)
-              setLocalMedication(updatedMedication)
-              onMedicationChange?.(updatedMedication)
-            }}
-            onFax={async (shouldFax) => {
-              console.log('🔍 Fax checkbox clicked - shouldFax:', shouldFax)
-              // Only track fax intent locally - don't execute until form is saved
-              setShouldFaxOnSave(shouldFax)
-              
-              // Update local medication state to show fax intent
-              if (localMedication) {
+          <div className="space-y-4">
+            {localMedications.map((medication) => {
+              const handleMedicationChange = (updatedMedication: MedicationAdjustmentData) => {
+                console.log('🔍 VISIT CLINICAL NOTE: Medication form changed:', updatedMedication.id)
+                
+                // Update medication states with the new data
+                setMedicationStates(prev => ({
+                  ...prev,
+                  [updatedMedication.id]: updatedMedication
+                }))
+                
+                // Notify parent component
+                onMedicationChange?.(updatedMedication.id, updatedMedication)
+              }
+
+              const handleFaxChange = async (shouldFax: boolean) => {
+                console.log('🔍 Fax checkbox clicked for medication:', medication.id, '- shouldFax:', shouldFax)
+                
+                // Track fax intent for when form is saved
+                setShouldFaxOnSave(prev => ({
+                  ...prev,
+                  [medication.id]: shouldFax
+                }))
+                
+                // Update medication state to show fax intent
                 const updatedMedication = {
-                  ...localMedication,
-                  // Set faxed to 'pending' to show checkbox state, but don't process until save
+                  ...medication,
                   faxed: shouldFax ? 'pending' : null
                 }
-                console.log('🔍 Updated medication with fax intent:', updatedMedication)
-                setLocalMedication(updatedMedication)
-                onMedicationChange?.(updatedMedication)
+                
+                setMedicationStates(prev => ({
+                  ...prev,
+                  [medication.id]: updatedMedication
+                }))
+                
+                onMedicationChange?.(medication.id, updatedMedication)
               }
-            }}
-            showSaveButton={false}
-            showRequestedDate={false}
-            showFaxCheckbox={true}
-          />
+
+              return (
+                <MedicationAdjustmentForm
+                  key={medication.id}
+                  medication={medication}
+                  showFaxCheckbox={true}
+                  onChange={handleMedicationChange}
+                  onFax={handleFaxChange}
+                  showSaveButton={false}
+                  showRequestedDate={false}
+                />
+              )
+            })}
+          </div>
         </div>
       )}
 

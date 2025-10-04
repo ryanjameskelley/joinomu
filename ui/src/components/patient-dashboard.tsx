@@ -78,6 +78,10 @@ export function PatientDashboard({
     status: 'pending' | 'approved' | 'denied'
     estimatedDelivery?: string
     nextPrescriptionDue?: string
+    refillRequested?: boolean
+    refillRequestedDate?: string
+    approvalDate?: string
+    fulfillmentStatus?: string
   }[]
   realAppointmentData?: {
     id: string
@@ -165,7 +169,11 @@ export function PatientDashboard({
                           supply={medication.supply}
                           status={medication.status}
                           estimatedDelivery={medication.estimatedDelivery}
+                          fulfillmentStatus={medication.fulfillmentStatus}
                           nextPrescriptionDue={medication.nextPrescriptionDue}
+                          refillRequested={medication.refillRequested}
+                          refillRequestedDate={medication.refillRequestedDate}
+                          approvalDate={medication.approvalDate}
                           onTitleClick={() => onEditMedication?.(medication.id)}
                           onRequestRefill={onRequestRefill ? () => onRequestRefill(medication.id) : undefined}
                           className="w-full"
