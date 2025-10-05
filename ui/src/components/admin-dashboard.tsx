@@ -452,7 +452,7 @@ export function AdminDashboard({
               </Breadcrumb>
             </div>
           </header>
-          <div className="flex flex-1 flex-col gap-4 p-4 pt-0 bg-card">
+          <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
             {showPatientTable ? (
               <PatientTable patients={patients} isAdmin={true} />
             ) : (

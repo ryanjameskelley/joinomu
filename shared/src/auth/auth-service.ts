@@ -344,15 +344,32 @@ class AuthService {
         .update(cleanedUpdateData)
         .eq('id', orderId)
         .select()
-        .single()
 
       if (error) {
         console.error('❌ Error updating medication order:', error)
-        return { success: false, error }
+        console.error('❌ Error details:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        })
+        return { success: false, error: {
+          message: error.message,
+          code: error.code,
+          details: error.details
+        }}
       }
 
-      console.log('✅ Medication order updated successfully:', data)
-      return { success: true, data, error: null }
+      if (!data || data.length === 0) {
+        console.error('❌ No medication order found with ID:', orderId, 'or insufficient permissions')
+        return { success: false, error: {
+          message: 'Medication order not found or insufficient permissions to update',
+          code: 'NOT_FOUND_OR_FORBIDDEN'
+        }}
+      }
+
+      console.log('✅ Medication order updated successfully:', data[0])
+      return { success: true, data: data[0], error: null }
     } catch (error: any) {
       console.error('❌ Exception updating medication order:', error)
       return { success: false, error }

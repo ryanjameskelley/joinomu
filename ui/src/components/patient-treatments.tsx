@@ -46,8 +46,24 @@ export interface PatientTreatmentsProps {
     dosage: string
     day: string
     time: string
-  }
-  history: MonthlyHistory[]
+    nextDueDate?: string
+    buttonText?: string
+    onStartTracking?: () => void
+  } | null
+  additionalMedications?: {
+    medication: string
+    dosage: string
+    day: string
+    time: string
+    nextDueDate?: string
+    buttonText?: string
+    onStartTracking?: () => void
+  }[]
+  history: (MonthlyHistory & {
+    items: (TreatmentHistoryItem & {
+      onEdit?: () => void
+    })[]
+  })[]
   treatmentType: string
   className?: string
 }
@@ -56,13 +72,62 @@ function TrackAlert({
   medication, 
   dosage, 
   day, 
-  time 
+  time,
+  nextDueDate,
+  buttonText,
+  onStartTracking,
+  medicationIndex
 }: { 
   medication: string
   dosage: string
   day: string
   time: string
+  nextDueDate?: string
+  buttonText?: string
+  onStartTracking?: () => void
+  medicationIndex?: number
 }) {
+  // Positive affirmations for medications that haven't been started yet
+  const getHealthAffirmation = (medicationIndex?: number): string => {
+    const affirmations = [
+      "Your health transformation begins with this first step",
+      "Every dose brings you closer to your wellness goals", 
+      "You're investing in a healthier, stronger you",
+      "Small daily actions create extraordinary results",
+      "Your commitment today shapes your tomorrow",
+      "This is your moment to prioritize your wellbeing",
+      "Consistency is your superpower for lasting change",
+      "You have everything it takes to succeed",
+      "Your body will thank you for this healthy choice",
+      "Progress starts with a single, powerful decision",
+      "You're writing a new chapter in your health story",
+      "Trust yourself and embrace this positive change",
+      "Each step forward is a victory worth celebrating",
+      "Your dedication to health inspires greatness",
+      "This medication is a tool for your transformation",
+      "You're choosing to thrive, not just survive"
+    ]
+    
+    // Use medication index if provided, otherwise fall back to medication name
+    let index;
+    if (typeof medicationIndex === 'number') {
+      index = medicationIndex % affirmations.length;
+    } else {
+      // Use a more robust hash of medication name for consistency
+      let hash = 0;
+      for (let i = 0; i < medication.length; i++) {
+        const char = medication.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32-bit integer
+      }
+      index = Math.abs(hash) % affirmations.length;
+    }
+    
+    return affirmations[index]
+  }
+
+  const isFirstTime = buttonText === "Start Tracking"
+
   return (
     <Alert className="[&>div:last-child]:text-foreground flex items-center justify-between">
       <div className="flex items-start gap-3">
@@ -73,12 +138,18 @@ function TrackAlert({
             <Badge variant="secondary" className="text-xs">{dosage}</Badge>
           </div>
           <AlertDescription className="text-xs text-muted-foreground">
-            Take {day} {time}
+            {isFirstTime ? (
+              <span className="italic">{getHealthAffirmation(medicationIndex)}</span>
+            ) : nextDueDate ? (
+              <span>Next: {new Date(nextDueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+            ) : (
+              <span>Take {day} {time}</span>
+            )}
           </AlertDescription>
         </div>
       </div>
-      <Button variant="outline" size="sm" className="ml-4 shrink-0">
-        Take Shot
+      <Button variant="outline" size="sm" className="ml-4 shrink-0" onClick={onStartTracking}>
+        {buttonText || "Start Tracking"}
       </Button>
     </Alert>
   )
@@ -88,8 +159,11 @@ function MedicationTrackingAlert({
   medication, 
   dosage, 
   date, 
-  time 
-}: TreatmentHistoryItem) {
+  time,
+  onEdit
+}: TreatmentHistoryItem & {
+  onEdit?: () => void
+}) {
   return (
     <Alert className="[&>div:last-child]:text-foreground flex items-center justify-between mb-3">
       <div className="flex items-start gap-3">
@@ -104,7 +178,7 @@ function MedicationTrackingAlert({
           </AlertDescription>
         </div>
       </div>
-      <Button variant="ghost" size="sm" className="ml-4 shrink-0">
+      <Button variant="ghost" size="sm" className="ml-4 shrink-0" onClick={onEdit}>
         Information
       </Button>
     </Alert>
@@ -116,6 +190,7 @@ export function PatientTreatments({
   onLogout,
   onNavigate,
   nextShot,
+  additionalMedications = [],
   history,
   treatmentType,
   className
@@ -153,15 +228,57 @@ export function PatientTreatments({
                 />
               </div>
 
-              {/* Next Shot Section */}
+              {/* Medications Section */}
               <div className="mb-6">
-                <h1 className="text-2xl font-bold mb-4">Next Shot</h1>
-                <TrackAlert 
-                  medication={nextShot.medication}
-                  dosage={nextShot.dosage}
-                  day={nextShot.day}
-                  time={nextShot.time}
-                />
+                <h1 className="text-2xl font-bold mb-4">Medications</h1>
+                {nextShot ? (
+                  <div className="space-y-3">
+                    <TrackAlert 
+                      medication={nextShot.medication}
+                      dosage={nextShot.dosage}
+                      day={nextShot.day}
+                      time={nextShot.time}
+                      nextDueDate={nextShot.nextDueDate}
+                      buttonText={nextShot.buttonText}
+                      onStartTracking={nextShot.onStartTracking}
+                      medicationIndex={0}
+                    />
+                    {additionalMedications.map((med, index) => (
+                      <TrackAlert 
+                        key={index}
+                        medication={med.medication}
+                        dosage={med.dosage}
+                        day={med.day}
+                        time={med.time}
+                        nextDueDate={med.nextDueDate}
+                        buttonText={med.buttonText}
+                        onStartTracking={med.onStartTracking}
+                        medicationIndex={index + 1}
+                      />
+                    ))}
+                  </div>
+                ) : additionalMedications.length > 0 ? (
+                  <div className="space-y-3">
+                    {additionalMedications.map((med, index) => (
+                      <TrackAlert 
+                        key={index}
+                        medication={med.medication}
+                        dosage={med.dosage}
+                        day={med.day}
+                        time={med.time}
+                        nextDueDate={med.nextDueDate}
+                        buttonText={med.buttonText}
+                        onStartTracking={med.onStartTracking}
+                        medicationIndex={index}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p>No approved medications available for tracking.</p>
+                    <p className="text-sm">Contact your provider to get started with treatment.</p>
+                  </div>
+                )}
               </div>
 
               {/* History Section */}
@@ -181,6 +298,7 @@ export function PatientTreatments({
                             dosage={item.dosage}
                             date={item.date}
                             time={item.time}
+                            onEdit={item.onEdit}
                           />
                         ))}
                       </div>
