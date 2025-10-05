@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { AppointmentBookingDialog } from './appointment-booking-dialog'
 import { action } from '@storybook/addon-actions'
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { Button } from './button'
 
 const meta: Meta<typeof AppointmentBookingDialog> = {

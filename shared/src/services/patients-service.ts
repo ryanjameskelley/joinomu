@@ -252,6 +252,118 @@ export class PatientsService {
   }
 
   /**
+   * Get patient medications with preferences
+   */
+  async getPatientMedications(userId: string): Promise<{
+    success: boolean
+    medications?: any[]
+    error?: string
+  }> {
+    try {
+      console.log('🔍 getPatientMedications: Starting for user:', userId)
+      
+      // First get the patient profile - check both user_id and profile_id fields
+      let patient = null
+      
+      // Try profile_id first
+      console.log('🔍 Trying to find patient by profile_id...')
+      const { data: patientByProfile, error: profileError } = await supabase
+        .from('patients')
+        .select('id')
+        .eq('profile_id', userId)
+        .maybeSingle()
+
+      console.log('🔍 Patient by profile_id result:', patientByProfile, 'error:', profileError)
+
+      if (patientByProfile) {
+        patient = patientByProfile
+      } else {
+        // Try user_id as fallback
+        console.log('🔍 Trying to find patient by user_id...')
+        const { data: patientByUser, error: userError } = await supabase
+          .from('patients')
+          .select('id')
+          .eq('user_id', userId)
+          .maybeSingle()
+        
+        console.log('🔍 Patient by user_id result:', patientByUser, 'error:', userError)
+        
+        if (patientByUser) {
+          patient = patientByUser
+        }
+      }
+
+      if (!patient) {
+        console.error('❌ Patient not found for user:', userId)
+        return { success: false, error: 'Patient profile not found' }
+      }
+
+      console.log('✅ Found patient:', patient)
+
+      // Get patient medication preferences - simplified query first
+      console.log('🔍 Fetching medication preferences for patient_id:', patient.id)
+      const { data: preferences, error: prefsError } = await supabase
+        .from('patient_medication_preferences')
+        .select('*')
+        .eq('patient_id', patient.id)
+        .eq('status', 'approved')
+
+      console.log('🔍 Preferences result:', preferences, 'error:', prefsError)
+
+      if (prefsError) {
+        console.error('❌ Error fetching patient medication preferences:', prefsError)
+        return { success: false, error: 'Failed to fetch patient medication preferences' }
+      }
+
+      // If we have preferences, get the medication details separately
+      if (!preferences || preferences.length === 0) {
+        console.log('ℹ️ No medication preferences found')
+        return { success: true, medications: [] }
+      }
+
+      console.log('🔍 Found preferences, getting medication details...')
+      
+      // Check what field contains the medication reference
+      console.log('🔍 First preference structure:', preferences[0])
+      
+      const medicationIds = preferences.map(pref => pref.medication_id).filter(Boolean)
+      console.log('🔍 Extracted medication IDs:', medicationIds)
+      
+      if (medicationIds.length === 0) {
+        console.log('ℹ️ No medication IDs found, returning preferences as-is')
+        return { success: true, medications: preferences }
+      }
+
+      // Get medication details
+      console.log('🔍 Fetching medication details for IDs:', medicationIds)
+      const { data: medications, error: medsError } = await supabase
+        .from('medications')
+        .select('*')
+        .in('id', medicationIds)
+
+      console.log('🔍 Medications result:', medications, 'error:', medsError)
+
+      if (medsError) {
+        console.error('❌ Error fetching medications:', medsError)
+        // Return preferences without medication details if medications table fails
+        return { success: true, medications: preferences }
+      }
+
+      // Combine preferences with medication details
+      const combinedData = preferences.map(pref => ({
+        ...pref,
+        medications: medications?.find(med => med.id === pref.medication_id) || null
+      }))
+
+      console.log('✅ Final combined medication data:', combinedData)
+      return { success: true, medications: combinedData }
+    } catch (error) {
+      console.error('💥 Patient medications fetch error:', error)
+      return { success: false, error: 'An unexpected error occurred' }
+    }
+  }
+
+  /**
    * Calculate eligibility based on form data
    */
   private calculateEligibility(data: EligibilityFormData, bmi: number): EligibilityResult {

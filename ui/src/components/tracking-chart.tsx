@@ -193,7 +193,12 @@ export function TrackingChart({
                 />
               }
             />
-            <Bar dataKey="visitors" fill={`var(--color-visitors)`} radius={4} />
+            <Bar 
+              dataKey="visitors" 
+              fill="#BBDDFF"
+              className="dark:fill-[#BBDDFF] fill-[var(--color-visitors)]"
+              radius={4} 
+            />
           </BarChart>
         </ChartContainer>
       </CardContent>

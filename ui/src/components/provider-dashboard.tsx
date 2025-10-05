@@ -908,7 +908,7 @@ export function ProviderDashboard({
               </Breadcrumb>
             </div>
           </header>
-          <div className="flex flex-1 flex-col gap-4 p-4 pt-0 bg-card">
+          <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
             {showPatientTable ? (
               <PatientTable 
                 patients={assignedPatients} 
@@ -961,6 +961,6 @@ export function ProviderDashboard({
             )}
           </div>
         </SidebarInset>
-    </SidebarProvider>
+      </SidebarProvider>
   )
 }

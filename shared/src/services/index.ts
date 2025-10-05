@@ -8,6 +8,7 @@ export { AddendumService } from './addendum-service.js'
 export { WearableDevicesService, wearableDevicesService } from './wearable-devices-service.js'
 export { HealthGoalsService, healthGoalsService } from './health-goals-service.js'
 export { HealthPermissionsService, healthPermissionsService } from './health-permissions-service.js'
+export { MedicationTrackingService, medicationTrackingService } from './medication-tracking-service.js'
 
 // API utilities and helpers
 export { ApiUtils, Logger, RateLimiter } from './api-utils.js'
@@ -65,6 +66,13 @@ export type {
   PermissionSummary,
   AccessAuditLog
 } from './health-permissions-service.js'
+
+export type {
+  MedicationTrackingEntry,
+  CreateTrackingEntryData,
+  UpdateTrackingEntryData,
+  TrackingEntryWithMedication
+} from './medication-tracking-service.js'
 
 export type {
   ApiResponse,
