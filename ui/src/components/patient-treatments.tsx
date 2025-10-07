@@ -1,12 +1,12 @@
 "use client"
 
 import * as React from "react"
-import { BarChartBig, BadgeCheck } from "lucide-react"
+import { BarChartBig, BadgeCheck, Activity } from "lucide-react"
 import { cn } from "../lib/utils"
 import { Alert, AlertDescription, AlertTitle } from "./alert"
 import { Button } from "./button"
 import { Badge } from "./badge"
-import { TrackingChart } from "./tracking-chart"
+import { TrackingChart, type MedicationOption } from "./tracking-chart"
 import { AppSidebar } from "./app-sidebar"
 import {
   Breadcrumb,
@@ -31,6 +31,25 @@ export interface TreatmentHistoryItem {
 export interface MonthlyHistory {
   month: string
   items: TreatmentHistoryItem[]
+}
+
+export interface HealthMetricsData {
+  date: string
+  value: number
+  unit: string
+}
+
+export interface MedicationTrackingEntry {
+  id: string
+  medication_preference_id: string
+  taken_date: string
+  taken_time: string
+  notes?: string
+  medication_preference?: {
+    medications?: {
+      name: string
+    }
+  }
 }
 
 export interface PatientTreatmentsProps {
@@ -66,6 +85,15 @@ export interface PatientTreatmentsProps {
   })[]
   treatmentType: string
   className?: string
+  medications?: MedicationOption[]
+  selectedMedications?: string[]
+  onMedicationSelectionChange?: (selected: string[]) => void
+  onAddMetrics?: () => void
+  healthMetricsData?: HealthMetricsData[]
+  patientId?: string
+  onRefreshMetrics?: (metricType?: string) => void
+  onMetricChange?: (metricType: string) => void
+  medicationTrackingEntries?: MedicationTrackingEntry[]
 }
 
 function TrackAlert({ 
@@ -193,14 +221,22 @@ export function PatientTreatments({
   additionalMedications = [],
   history,
   treatmentType,
-  className
+  className,
+  medications = [],
+  selectedMedications = [],
+  onMedicationSelectionChange = () => {},
+  onAddMetrics,
+  healthMetricsData = [],
+  patientId,
+  onRefreshMetrics,
+  onMetricChange,
+  medicationTrackingEntries = []
 }: PatientTreatmentsProps) {
   return (
     <SidebarProvider>
         <AppSidebar user={user} onLogout={onLogout} onNavigate={onNavigate} />
-        <div className="flex flex-col pt-4 px-4 pb-4 flex-1">
-          <SidebarInset className="flex flex-col rounded-xl shadow flex-1">
-            <header className="flex h-16 shrink-0 items-center gap-2 sticky top-0 bg-card rounded-t-xl z-50">
+        <SidebarInset>
+          <header className="flex h-16 shrink-0 items-center gap-2">
             <div className="flex items-center gap-2 px-4">
               <SidebarTrigger className="-ml-1" />
               <Separator
@@ -216,15 +252,25 @@ export function PatientTreatments({
               </Breadcrumb>
             </div>
           </header>
-          <div className="flex-1 overflow-y-auto">
-            <div className={cn("flex flex-col p-4", className)}>
-              {/* Weight Chart Section */}
+          <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+            {/* Weight Chart Section */}
               <div className="mb-6">
                 <TrackingChart 
-                  title="Weight"
-                  description="Daily weight tracking" 
+                  title="Health Metrics"
+                  description="Daily health tracking" 
                   selectedMetric="weight"
                   affirmation="Your body is transforming with each healthy choice - trust the process and celebrate progress."
+                  subtext="You're losing weight after taking your medication. However, your sugar intake tends to start increasing as your next dose approaches"
+                  medications={medications}
+                  selectedMedications={selectedMedications}
+                  onMedicationSelectionChange={onMedicationSelectionChange}
+                  onAddMetrics={onAddMetrics}
+                  hasMetrics={healthMetricsData && healthMetricsData.length > 0}
+                  metricsData={healthMetricsData}
+                  patientId={patientId}
+                  onRefresh={onRefreshMetrics}
+                  onMetricChange={onMetricChange}
+                  medicationTrackingEntries={medicationTrackingEntries}
                 />
               </div>
 
@@ -281,6 +327,7 @@ export function PatientTreatments({
                 )}
               </div>
 
+
               {/* History Section */}
               <div className="mb-6">
                 <h2 className="text-xl font-semibold mb-4">History</h2>
@@ -306,10 +353,8 @@ export function PatientTreatments({
                   ))}
                 </div>
               </div>
-            </div>
           </div>
-          </SidebarInset>
-        </div>
+        </SidebarInset>
     </SidebarProvider>
   )
 }

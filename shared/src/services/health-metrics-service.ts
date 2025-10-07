@@ -2,7 +2,7 @@ import { supabase } from '../config/supabase.js'
 
 export interface HealthMetricData {
   patientId: string
-  metricType: 'weight' | 'heart_rate' | 'blood_pressure' | 'steps' | 'sleep' | 'blood_glucose' | 'exercise_minutes'
+  metricType: 'weight' | 'heart_rate' | 'blood_pressure' | 'steps' | 'sleep' | 'blood_glucose' | 'exercise_minutes' | 'calories' | 'protein' | 'sugar' | 'water'
   value: number
   unit: string
   recordedAt: string
@@ -247,33 +247,157 @@ export class HealthMetricsService {
   }
 
   /**
-   * Add manual health metric entry
+   * Add manual health metric entry (upsert to prevent duplicates)
    */
   async addManualEntry(metric: HealthMetricData): Promise<{
     success: boolean
     error?: string
   }> {
     try {
-      const { error } = await supabase
-        .from('patient_health_metrics')
-        .insert({
-          patient_id: metric.patientId,
-          metric_type: metric.metricType,
-          value: metric.value,
-          unit: metric.unit,
-          recorded_at: metric.recordedAt,
-          synced_from: 'manual',
-          metadata: metric.metadata
-        })
+      // Get the date part only (YYYY-MM-DD) for duplicate checking
+      const recordedDate = metric.recordedAt.split('T')[0]
+      const startOfDay = `${recordedDate}T00:00:00.000Z`
+      const endOfDay = `${recordedDate}T23:59:59.999Z`
 
-      if (error) {
-        console.error('Error adding manual entry:', error)
-        return { success: false, error: 'Failed to add health metric' }
+      // Check for existing entry for the same patient, metric type, and date
+      const { data: existing } = await supabase
+        .from('patient_health_metrics')
+        .select('id')
+        .eq('patient_id', metric.patientId)
+        .eq('metric_type', metric.metricType)
+        .gte('recorded_at', startOfDay)
+        .lte('recorded_at', endOfDay)
+        .single()
+
+      if (existing) {
+        // Update existing entry
+        const { error } = await supabase
+          .from('patient_health_metrics')
+          .update({
+            value: metric.value,
+            unit: metric.unit,
+            recorded_at: metric.recordedAt,
+            synced_from: 'manual',
+            metadata: metric.metadata,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existing.id)
+
+        if (error) {
+          console.error('Error updating manual entry:', error)
+          return { success: false, error: 'Failed to update health metric' }
+        }
+      } else {
+        // Insert new entry
+        const { error } = await supabase
+          .from('patient_health_metrics')
+          .insert({
+            patient_id: metric.patientId,
+            metric_type: metric.metricType,
+            value: metric.value,
+            unit: metric.unit,
+            recorded_at: metric.recordedAt,
+            synced_from: 'manual',
+            metadata: metric.metadata
+          })
+
+        if (error) {
+          console.error('Error adding manual entry:', error)
+          return { success: false, error: 'Failed to add health metric' }
+        }
       }
 
       return { success: true }
     } catch (error) {
       console.error('Manual entry error:', error)
+      return { success: false, error: 'An unexpected error occurred' }
+    }
+  }
+
+  /**
+   * Add multiple health metrics in a batch operation
+   */
+  async addBatchEntries(metrics: HealthMetricData[]): Promise<{
+    success: boolean
+    saved: number
+    errors: string[]
+  }> {
+    try {
+      let saved = 0
+      const errors: string[] = []
+
+      for (const metric of metrics) {
+        try {
+          const result = await this.addManualEntry(metric)
+          if (result.success) {
+            saved++
+          } else {
+            errors.push(`Failed to save ${metric.metricType}: ${result.error}`)
+          }
+        } catch (error) {
+          errors.push(`Error saving ${metric.metricType}: ${error}`)
+        }
+      }
+
+      return { 
+        success: saved > 0, 
+        saved, 
+        errors 
+      }
+    } catch (error) {
+      console.error('Batch entry error:', error)
+      return { 
+        success: false, 
+        saved: 0, 
+        errors: ['Failed to process batch metrics'] 
+      }
+    }
+  }
+
+  /**
+   * Check which metrics have been entered for a specific date
+   */
+  async getMetricsForDate(patientId: string, date: string): Promise<{
+    success: boolean
+    metrics?: Record<string, HealthMetricData>
+    error?: string
+  }> {
+    try {
+      const startOfDay = new Date(date)
+      startOfDay.setHours(0, 0, 0, 0)
+      
+      const endOfDay = new Date(date)
+      endOfDay.setHours(23, 59, 59, 999)
+
+      const { data: metrics, error } = await supabase
+        .from('patient_health_metrics')
+        .select('*')
+        .eq('patient_id', patientId)
+        .gte('recorded_at', startOfDay.toISOString())
+        .lte('recorded_at', endOfDay.toISOString())
+
+      if (error) {
+        console.error('Error fetching metrics for date:', error)
+        return { success: false, error: 'Failed to fetch metrics for date' }
+      }
+
+      // Convert to record format keyed by metric type
+      const metricsRecord: Record<string, HealthMetricData> = {}
+      ;(metrics || []).forEach(metric => {
+        metricsRecord[metric.metric_type] = {
+          patientId: metric.patient_id,
+          metricType: metric.metric_type,
+          value: metric.value,
+          unit: metric.unit,
+          recordedAt: metric.recorded_at,
+          syncedFrom: metric.synced_from,
+          metadata: metric.metadata
+        }
+      })
+
+      return { success: true, metrics: metricsRecord }
+    } catch (error) {
+      console.error('Metrics for date error:', error)
       return { success: false, error: 'An unexpected error occurred' }
     }
   }

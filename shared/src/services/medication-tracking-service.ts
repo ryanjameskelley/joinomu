@@ -361,6 +361,12 @@ export class MedicationTrackingService {
         .eq('patient_id', patient.id)
         .order('taken_date', { ascending: false })
 
+      console.log('🔍 MedicationTrackingService: Raw Supabase response:', { entries, error })
+      
+      if (entries && entries.length > 0) {
+        console.log('🔍 First entry from Supabase:', JSON.stringify(entries[0], null, 2))
+      }
+
       if (error) {
         const { error: errorMsg, code } = ApiUtils.handleSupabaseError(error)
         return ApiUtils.createResponse(false, null as any, errorMsg, code)
