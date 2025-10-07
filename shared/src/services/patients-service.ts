@@ -174,15 +174,21 @@ export class PatientsService {
     error?: string
   }> {
     try {
+      // Get patient by profile_id only (since that's the field that exists)
       const { data: patient, error } = await supabase
         .from('patients')
         .select('*')
-        .eq('user_id', userId)
-        .single()
+        .eq('profile_id', userId)
+        .maybeSingle()
 
       if (error) {
         console.error('Error fetching patient profile:', error)
         return { success: false, error: 'Failed to fetch patient profile' }
+      }
+
+      if (!patient) {
+        console.error('No patient found for user:', userId)
+        return { success: false, error: 'Patient profile not found' }
       }
 
       return { success: true, patient }
@@ -262,36 +268,15 @@ export class PatientsService {
     try {
       console.log('🔍 getPatientMedications: Starting for user:', userId)
       
-      // First get the patient profile - check both user_id and profile_id fields
-      let patient = null
-      
-      // Try profile_id first
+      // Get the patient profile by profile_id only
       console.log('🔍 Trying to find patient by profile_id...')
-      const { data: patientByProfile, error: profileError } = await supabase
+      const { data: patient, error: profileError } = await supabase
         .from('patients')
         .select('id')
         .eq('profile_id', userId)
         .maybeSingle()
 
-      console.log('🔍 Patient by profile_id result:', patientByProfile, 'error:', profileError)
-
-      if (patientByProfile) {
-        patient = patientByProfile
-      } else {
-        // Try user_id as fallback
-        console.log('🔍 Trying to find patient by user_id...')
-        const { data: patientByUser, error: userError } = await supabase
-          .from('patients')
-          .select('id')
-          .eq('user_id', userId)
-          .maybeSingle()
-        
-        console.log('🔍 Patient by user_id result:', patientByUser, 'error:', userError)
-        
-        if (patientByUser) {
-          patient = patientByUser
-        }
-      }
+      console.log('🔍 Patient by profile_id result:', patient, 'error:', profileError)
 
       if (!patient) {
         console.error('❌ Patient not found for user:', userId)

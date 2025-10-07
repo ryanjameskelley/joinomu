@@ -1,12 +1,82 @@
-import { PatientTreatments, type MonthlyHistory, MedicationTrackingDialog, type MedicationTrackingEntry } from '@joinomu/ui'
+import { PatientTreatments, type MonthlyHistory, MedicationTrackingDialog, type MedicationTrackingEntry, type MedicationOption, MetricsTracking } from '@joinomu/ui'
 import { useAuth } from '@/hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
-import { medicationTrackingService, patientsService, type CreateTrackingEntryData, type UpdateTrackingEntryData } from '@joinomu/shared'
+import { medicationTrackingService, patientsService, healthMetricsService, type CreateTrackingEntryData, type UpdateTrackingEntryData, type HealthMetricData } from '@joinomu/shared'
 import * as React from 'react'
 import { toast } from 'sonner'
 
 interface PatientTreatmentsPageProps {
   treatmentType?: string
+}
+
+// Sample data generator for testing charts when no real data exists
+function generateSampleHealthData(metricType: string, startDate: Date, endDate: Date) {
+  const data = []
+  const currentDate = new Date(startDate)
+  
+  // Metric configurations for realistic sample data
+  const metricConfigs: Record<string, { base: number; variation: number; unit: string; trend?: number }> = {
+    weight: { base: 185, variation: 3, unit: 'lbs', trend: -0.15 }, // Gradual weight loss
+    steps: { base: 8500, variation: 3000, unit: 'steps' },
+    sleep: { base: 7.5, variation: 1.5, unit: 'hours' },
+    calories: { base: 2200, variation: 400, unit: 'kcal' },
+    protein: { base: 120, variation: 30, unit: 'grams' },
+    sugar: { base: 45, variation: 20, unit: 'grams' },
+    water: { base: 64, variation: 16, unit: 'fl oz' },
+    'heart-rate': { base: 72, variation: 8, unit: 'bpm', trend: -0.1 } // Improving fitness
+  }
+  
+  const config = metricConfigs[metricType] || metricConfigs.weight
+  let baseValue = config.base
+  let dayIndex = 0
+  
+  while (currentDate <= endDate) {
+    // Generate data for ~70% of days (realistic tracking frequency)
+    if (Math.random() < 0.7) {
+      // Apply trend if specified
+      if (config.trend) {
+        baseValue += config.trend
+      }
+      
+      // Add daily variation
+      let value = baseValue + (Math.random() - 0.5) * 2 * config.variation
+      
+      // Weekend patterns
+      const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6
+      if (metricType === 'steps' && isWeekend) {
+        value *= 0.7 // Less active on weekends
+      } else if (metricType === 'sleep' && isWeekend) {
+        value *= 1.15 // More sleep on weekends
+      } else if ((metricType === 'calories' || metricType === 'sugar') && isWeekend) {
+        value *= 1.2 // More indulgent on weekends
+      }
+      
+      // Ensure reasonable bounds
+      if (metricType === 'weight') value = Math.max(150, Math.min(250, value))
+      else if (metricType === 'steps') value = Math.max(1000, Math.min(20000, value))
+      else if (metricType === 'sleep') value = Math.max(4, Math.min(12, value))
+      else if (metricType === 'heart-rate') value = Math.max(50, Math.min(100, value))
+      
+      // Round appropriately
+      if (['weight', 'sleep'].includes(metricType)) {
+        value = Math.round(value * 10) / 10
+      } else {
+        value = Math.round(value)
+      }
+      
+      data.push({
+        date: currentDate.toISOString().split('T')[0],
+        value: value,
+        unit: config.unit
+      })
+    }
+    
+    currentDate.setDate(currentDate.getDate() + 1)
+    dayIndex++
+  }
+  
+  // Sort by date and return
+  return data.sort((a, b) => a.date.localeCompare(b.date))
 }
 
 export function PatientTreatmentsPage({ treatmentType = "Weight Loss" }: PatientTreatmentsPageProps) {
@@ -18,6 +88,11 @@ export function PatientTreatmentsPage({ treatmentType = "Weight Loss" }: Patient
   const [realMedications, setRealMedications] = React.useState<any[]>([])
   const [trackingEntries, setTrackingEntries] = React.useState<any[]>([])
   const [loading, setLoading] = React.useState(true)
+  const [selectedMedications, setSelectedMedications] = React.useState<string[]>([])
+  const [metricsDialogOpen, setMetricsDialogOpen] = React.useState(false)
+  const [healthMetricsData, setHealthMetricsData] = React.useState<any[]>([])
+  const [currentMetricType, setCurrentMetricType] = React.useState<string>('weight')
+
 
   const handleLogout = async () => {
     try {
@@ -225,6 +300,82 @@ export function PatientTreatmentsPage({ treatmentType = "Weight Loss" }: Patient
     }
   }
 
+  // Load health metrics data
+  const loadHealthMetrics = React.useCallback(async (metricType: string = 'weight') => {
+    if (!user) return
+    
+    try {
+      // Get patient profile first
+      const { success, patient, error } = await patientsService.getPatientProfile(user.id)
+      if (!success || !patient?.id) {
+        console.error('Error getting patient profile for health metrics:', error)
+        return
+      }
+
+      // Get health metrics for the specified type (from start of year to present)
+      const endDate = new Date()
+      const startDate = new Date(endDate.getFullYear(), 0, 1) // January 1st of current year
+
+      // Map metric types to database types
+      const metricTypeMap: Record<string, string> = {
+        'weight': 'weight',
+        'steps': 'steps', 
+        'sleep': 'sleep',
+        'calories': 'calories',
+        'protein': 'protein',
+        'sugar': 'sugar',
+        'water': 'water',
+        'heart-rate': 'heart_rate'
+      }
+
+      const dbMetricType = metricTypeMap[metricType] || 'weight'
+
+      console.log('🔍 Loading health metrics:', {
+        metricType,
+        dbMetricType,
+        patientId: patient.id,
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: endDate.toISOString().split('T')[0]
+      })
+
+      const metricsResult = await healthMetricsService.getHealthMetrics({
+        patientId: patient.id,
+        metricTypes: [dbMetricType],
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        limit: 1000 // Increased limit to handle full year of data
+      })
+
+      console.log('🔍 Health metrics result:', metricsResult)
+
+      if (metricsResult.success && metricsResult.metrics && metricsResult.metrics.length > 0) {
+        console.log('🔍 Raw metrics from service:', metricsResult.metrics)
+        
+        // Transform to chart format
+        const chartData = metricsResult.metrics.map(metric => ({
+          date: metric.recordedAt.split('T')[0], // Convert to YYYY-MM-DD format
+          value: metric.value,
+          unit: metric.unit
+        }))
+        
+        console.log('🔍 Transformed chart data:', chartData)
+        console.log('🔍 Chart data dates:', chartData.map(d => d.date))
+        
+        setHealthMetricsData(chartData)
+      } else {
+        console.log('🔍 No real data found, generating sample data for testing...')
+        
+        // Generate sample data for testing when no real data exists
+        const sampleData = generateSampleHealthData(metricType, startDate, endDate)
+        console.log('🔍 Generated sample data:', sampleData)
+        setHealthMetricsData(sampleData)
+      }
+    } catch (error) {
+      console.error('Error loading health metrics:', error)
+      setHealthMetricsData([])
+    }
+  }, [user])
+
   // Load real medication data
   React.useEffect(() => {
     const loadMedicationData = async () => {
@@ -252,6 +403,13 @@ export function PatientTreatmentsPage({ treatmentType = "Weight Loss" }: Patient
         const entriesResult = await medicationTrackingService.getPatientTrackingEntries()
         console.log('🔍 PatientTreatmentsPage: Tracking entries result:', entriesResult)
         
+        // Debug: Log the structure of the first entry if it exists
+        if (entriesResult.success && entriesResult.data && entriesResult.data.length > 0) {
+          console.log('🔍 First tracking entry structure:', JSON.stringify(entriesResult.data[0], null, 2))
+          console.log('🔍 Medication preference:', entriesResult.data[0].medication_preference)
+          console.log('🔍 Medication name:', entriesResult.data[0].medication_preference?.medications?.name)
+        }
+        
         if (entriesResult.success && entriesResult.data) {
           console.log('✅ PatientTreatmentsPage: Setting tracking entries:', entriesResult.data)
           setTrackingEntries(entriesResult.data)
@@ -259,6 +417,9 @@ export function PatientTreatmentsPage({ treatmentType = "Weight Loss" }: Patient
           console.error('❌ PatientTreatmentsPage: Failed to fetch tracking entries:', entriesResult.error)
           setTrackingEntries([])
         }
+
+        // Load health metrics data
+        await loadHealthMetrics()
       } catch (error) {
         console.error('💥 PatientTreatmentsPage: Critical error loading medication data:', error)
         setRealMedications([])
@@ -270,7 +431,7 @@ export function PatientTreatmentsPage({ treatmentType = "Weight Loss" }: Patient
     }
     
     loadMedicationData()
-  }, [user])
+  }, [user, loadHealthMetrics])
 
   // Helper function to determine button text based on tracking history
   const getButtonText = (medicationId: string, entries: any[]): string => {
@@ -448,6 +609,26 @@ export function PatientTreatmentsPage({ treatmentType = "Weight Loss" }: Patient
 
   const { nextShot, additionalMedications, history } = getTreatmentDataSafely()
 
+  // Convert real medications to MedicationOption format for chart dropdown
+  const medicationOptions: MedicationOption[] = React.useMemo(() => {
+    return realMedications
+      .filter(med => med?.status === 'approved')
+      .map(med => ({
+        id: med.id,
+        name: med.medications?.name || 'Unknown Medication',
+        dosage: med.preferred_dosage || 'Unknown dosage'
+      }))
+  }, [realMedications])
+
+  const handleMedicationSelectionChange = (selected: string[]) => {
+    setSelectedMedications(selected)
+  }
+
+  const handleMetricChange = async (metricType: string) => {
+    setCurrentMetricType(metricType)
+    await loadHealthMetrics(metricType)
+  }
+
   const handleStartTracking = (medication: {name: string, dosage: string, id: string, frequency?: string}) => {
     setSelectedMedication(medication)
     setEditingEntry(null)
@@ -533,6 +714,72 @@ export function PatientTreatmentsPage({ treatmentType = "Weight Loss" }: Patient
     }
   }
 
+  const handleSaveMetrics = async (metrics: Record<string, number>, date: string) => {
+    try {
+      if (!user) {
+        toast.error('User not authenticated')
+        return
+      }
+
+      // Get patient record first 
+      const { success, patient, error } = await patientsService.getPatientProfile(user.id)
+      if (!success || !patient?.id) {
+        toast.error('Patient profile not found')
+        console.error('Error getting patient profile:', error)
+        return
+      }
+
+      // Convert metrics to HealthMetricData format
+      const metricsToSave: HealthMetricData[] = []
+      const recordedAt = new Date(date).toISOString()
+
+      // Map our component metrics to database metric types
+      const metricMapping = {
+        weight: { type: 'weight' as const, unit: 'lbs' },
+        steps: { type: 'steps' as const, unit: 'steps' },
+        sleep: { type: 'sleep' as const, unit: 'hours' },
+        calories: { type: 'calories' as const, unit: 'kcal' },
+        protein: { type: 'protein' as const, unit: 'grams' },
+        sugar: { type: 'sugar' as const, unit: 'grams' },
+        water: { type: 'water' as const, unit: 'fl oz' },
+        averageHeartRate: { type: 'heart_rate' as const, unit: 'bpm' }
+      }
+
+      for (const [key, value] of Object.entries(metrics)) {
+        const mapping = metricMapping[key as keyof typeof metricMapping]
+        if (mapping && value > 0) {
+          metricsToSave.push({
+            patientId: patient.id,
+            metricType: mapping.type,
+            value: value,
+            unit: mapping.unit,
+            recordedAt: recordedAt,
+            syncedFrom: 'manual'
+          })
+        }
+      }
+
+      if (metricsToSave.length === 0) {
+        toast.error('No metrics to save')
+        return
+      }
+
+      const result = await healthMetricsService.addBatchEntries(metricsToSave)
+      
+      if (result.success && result.saved > 0) {
+        toast.success(`Successfully saved ${result.saved} metric(s)`)
+        setMetricsDialogOpen(false)
+        // Refresh health metrics data to show the new data in charts
+        await loadHealthMetrics()
+      } else {
+        toast.error(result.errors?.join(', ') || 'Failed to save metrics')
+      }
+    } catch (error) {
+      console.error('Error saving metrics:', error)
+      toast.error('An unexpected error occurred')
+    }
+  }
+
   return (
     <>
       <PatientTreatments 
@@ -552,6 +799,15 @@ export function PatientTreatmentsPage({ treatmentType = "Weight Loss" }: Patient
           }))
         }))}
         treatmentType={treatmentType}
+        medications={medicationOptions}
+        selectedMedications={selectedMedications}
+        onMedicationSelectionChange={handleMedicationSelectionChange}
+        onAddMetrics={() => setMetricsDialogOpen(true)}
+        healthMetricsData={healthMetricsData}
+        patientId={user?.id}
+        onRefreshMetrics={() => loadHealthMetrics(currentMetricType)}
+        onMetricChange={handleMetricChange}
+        medicationTrackingEntries={trackingEntries}
       />
       
       {selectedMedication && (
@@ -562,6 +818,14 @@ export function PatientTreatmentsPage({ treatmentType = "Weight Loss" }: Patient
           entry={editingEntry}
           onSave={handleSaveEntry}
           isEditing={!!editingEntry}
+        />
+      )}
+
+      {metricsDialogOpen && (
+        <MetricsTracking
+          defaultOpen={metricsDialogOpen}
+          onSave={handleSaveMetrics}
+          patientId={userData?.email}
         />
       )}
     </>
