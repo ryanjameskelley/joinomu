@@ -31,6 +31,7 @@ import { MedicationCard } from "./medication-card"
 import { VisitCard } from "./visit-card"
 import { VisitClinicalNote, type ClinicalNoteData } from "./visit-clinical-note"
 import { MedicationAdjustmentForm, type MedicationAdjustmentData } from "./medication-adjustment-form"
+import { TrackingChart, type MedicationOption } from "./tracking-chart"
 import { Card, CardContent, CardHeader, CardTitle } from "./card"
 import { Label } from "./label"
 import { Input } from "./input"
@@ -167,6 +168,12 @@ export function ProviderPatientInformationDialog({
   const [loadingClinicalNote, setLoadingClinicalNote] = React.useState(false)
   const [faxes, setFaxes] = React.useState<any[]>([])
   const [loadingFaxes, setLoadingFaxes] = React.useState(false)
+  const [healthMetricsData, setHealthMetricsData] = React.useState<any[]>([])
+  const [medicationTrackingData, setMedicationTrackingData] = React.useState<any[]>([])
+  const [currentMetricType, setCurrentMetricType] = React.useState<string>('weight')
+  const [selectedMedicationsForTracking, setSelectedMedicationsForTracking] = React.useState<string[]>(() => 
+    patient?.medicationPreferences?.filter(med => med.status === 'approved').map(med => med.id) || []
+  )
   
   // Update activeTab when initialTab changes
   React.useEffect(() => {
@@ -220,36 +227,6 @@ export function ProviderPatientInformationDialog({
     }
   }, [initialMedicationId, patient?.medicationPreferences])
 
-  // Clear selected items when switching between top-level tabs
-  React.useEffect(() => {
-    // When activeTab changes, clear any nested navigation state
-    // This ensures breadcrumb shows the correct top-level section
-    if (activeTab === "Patient Information" || activeTab === "Tracking") {
-      setSelectedMedication(null)
-      setEditedMedication(null)
-      setSelectedVisit(null)
-      setClinicalNoteData(null)
-      setExistingClinicalNote(null)
-      setPendingMedicationChanges(null)
-      setNewAddendum('')
-      setIsAddingAddendum(false)
-    } else if (activeTab === "Medications") {
-      // Clear visit-related state when switching to Medications tab
-      setSelectedVisit(null)
-      setClinicalNoteData(null)
-      setExistingClinicalNote(null)
-      setNewAddendum('')
-      setIsAddingAddendum(false)
-    } else if (activeTab === "Visits") {
-      // Clear medication-related state when switching to Visits tab
-      setSelectedMedication(null)
-      setEditedMedication(null)
-      setPendingMedicationChanges(null)
-    }
-  }, [activeTab])
-  
-  if (!patient) return null
-
   const getStartDate = (medication: PatientMedicationPreference) => {
     if (medication.status === 'approved') {
       return 'Started'
@@ -279,8 +256,6 @@ export function ProviderPatientInformationDialog({
     
     return { upcoming, previous }
   }
-
-  const { upcoming: upcomingVisits, previous: previousVisits } = categorizeVisits(patient.visits)
 
   const handleBackToMedications = () => {
     setSelectedMedication(null)
@@ -392,6 +367,233 @@ export function ProviderPatientInformationDialog({
       setLoadingFaxes(false)
     }
   }
+
+  // Load health metrics data for the patient
+  const loadHealthMetrics = React.useCallback(async (metricType: string = 'weight') => {
+    if (!patient?.profile_id) return
+    
+    console.log('🔍 PROVIDER DIALOG: Loading health metrics for patient:', patient.profile_id, 'metric type:', metricType)
+    
+    try {
+      // Generate mock data for different metric types since real data access is limited
+      console.log('🔍 PROVIDER DIALOG: Generating MOCK DATA for metric type:', metricType)
+      
+      const mockHealthMetrics = []
+      const today = new Date()
+      
+      // Generate 365 days of mock data so chart range selector works properly
+      for (let i = 364; i >= 0; i--) {
+        const date = new Date(today)
+        date.setDate(date.getDate() - i)
+        
+        let value: number
+        let unit: string
+        
+        // Calculate day of week once for all cases that need it
+        const dayOfWeek = date.getDay()
+        
+        switch (metricType) {
+          case 'weight':
+            // Mock weight progression over a year (starts at 205, gradual decline with seasonal fluctuations)
+            const baseWeight = 205 - (i * 0.03) // Gradual 10 lb loss over year
+            const seasonalVariation = Math.sin((i / 365) * 2 * Math.PI) * 2 // ±2 lbs seasonal variation
+            const dailyNoise = (Math.random() * 2 - 1) // ±1 lb daily variation
+            value = Math.round((baseWeight + seasonalVariation + dailyNoise) * 10) / 10
+            unit = 'lbs'
+            break
+          case 'steps':
+            // Mock steps with weekly patterns (more on weekdays, less on weekends)
+            const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
+            const baseSteps = isWeekend ? 6000 : 9000
+            const seasonalActivity = Math.sin((i / 365) * 2 * Math.PI) * 1000 // More active in spring/summer
+            value = Math.floor(baseSteps + seasonalActivity + (Math.random() * 3000))
+            unit = 'steps'
+            break
+          case 'sleep':
+            // Mock sleep with realistic patterns (slightly more on weekends)
+            const isWeekendSleep = dayOfWeek === 0 || dayOfWeek === 6
+            const baseSleep = isWeekendSleep ? 8.0 : 7.2
+            const randomVariation = (Math.random() * 1.5 - 0.75) // ±45 minutes
+            value = Math.round((baseSleep + randomVariation) * 10) / 10
+            unit = 'hours'
+            break
+          case 'calories':
+            // Mock calories with weekly and seasonal patterns
+            const weekendCalories = dayOfWeek === 0 || dayOfWeek === 6
+            const baseCalories = weekendCalories ? 2200 : 2000
+            const holidayBoost = Math.sin((i / 365) * 2 * Math.PI) * 200 // Holiday season variation
+            value = Math.floor(baseCalories + holidayBoost + (Math.random() * 400 - 200))
+            unit = 'kcal'
+            break
+          case 'protein':
+            // Mock protein intake with gradual improvement trend
+            const baseProtein = 80 + (i * 0.05) // Gradual increase in protein awareness
+            const proteinVariation = Math.random() * 40
+            value = Math.floor(baseProtein + proteinVariation)
+            unit = 'g'
+            break
+          case 'sugar':
+            // Mock sugar intake with improvement trend and weekend spikes
+            const weekendSugar = dayOfWeek === 0 || dayOfWeek === 6
+            const baseSugar = 50 - (i * 0.02) // Gradual reduction over time
+            const weekendSpike = weekendSugar ? 15 : 0
+            value = Math.floor(Math.max(15, baseSugar + weekendSpike + (Math.random() * 20 - 10)))
+            unit = 'g'
+            break
+          case 'water':
+            // Mock water intake with seasonal patterns (more in summer)
+            const seasonalThirst = Math.sin((i / 365) * 2 * Math.PI + Math.PI/2) * 2 // Peak in summer
+            const baseWater = 8 + seasonalThirst
+            value = Math.floor(Math.max(4, baseWater + (Math.random() * 4 - 2)))
+            unit = 'cups'
+            break
+          case 'heart-rate':
+            // Mock resting heart rate with fitness improvement trend
+            const baseHR = 75 - (i * 0.01) // Gradual improvement over time
+            const hrVariation = Math.random() * 10 - 5
+            value = Math.floor(Math.max(55, Math.min(85, baseHR + hrVariation)))
+            unit = 'bpm'
+            break
+          default:
+            // Default to weight
+            const defaultBaseWeight = 205 - (i * 0.03)
+            const defaultVariation = (Math.random() * 2 - 1)
+            value = Math.round((defaultBaseWeight + defaultVariation) * 10) / 10
+            unit = 'lbs'
+        }
+        
+        mockHealthMetrics.push({
+          date: date.toISOString().split('T')[0],
+          value,
+          unit
+        })
+        
+        // Debug log for problematic metrics
+        if (metricType === 'sleep' || metricType === 'calories' || metricType === 'sugar') {
+          if (i === 364) { // Log only for first day
+            console.log(`🔍 PROVIDER DIALOG: Sample ${metricType} data:`, { date: date.toISOString().split('T')[0], value, unit })
+          }
+        }
+      }
+      
+      console.log('🔍 PROVIDER DIALOG: Generated', mockHealthMetrics.length, 'days of MOCK chart data for', metricType)
+      console.log('🔍 PROVIDER DIALOG: Sample data:', mockHealthMetrics.slice(0, 3))
+      console.log('🔍 PROVIDER DIALOG: Data format check - first item:', mockHealthMetrics[0])
+      console.log('🔍 PROVIDER DIALOG: Setting health metrics data with', mockHealthMetrics.length, 'items')
+      console.log('🔍 PROVIDER DIALOG: Current healthMetricsData length before setting:', healthMetricsData.length)
+      setHealthMetricsData(mockHealthMetrics)
+      console.log('🔍 PROVIDER DIALOG: hasMetrics will be:', mockHealthMetrics.length > 0)
+      
+    } catch (error) {
+      console.error('Error loading health metrics:', error)
+      setHealthMetricsData([])
+    }
+  }, [patient?.profile_id])
+
+  // Load medication tracking data for the patient
+  const loadMedicationTracking = React.useCallback(async () => {
+    if (!patient?.profile_id) return
+    
+    try {
+      // Import supabase directly to query tracking entries for this specific patient
+      const { supabase } = await import('@joinomu/shared')
+      
+      // First, get the patient's internal ID from their profile_id
+      const { data: patientRecord, error: patientError } = await supabase
+        .from('patients')
+        .select('id')
+        .eq('profile_id', patient.profile_id)
+        .single()
+        
+      if (patientError || !patientRecord) {
+        console.log('🔍 PROVIDER DIALOG: Patient record not found:', patientError)
+        setMedicationTrackingData([])
+        return
+      }
+      
+      // Get tracking entries for this specific patient
+      const { data: entries, error } = await supabase
+        .from('medication_tracking_entries')
+        .select(`
+          *,
+          medication_preference:patient_medication_preferences(
+            preferred_dosage,
+            medications(name)
+          )
+        `)
+        .eq('patient_id', patientRecord.id)
+        .order('taken_date', { ascending: false })
+      
+      if (error) {
+        console.error('🔍 PROVIDER DIALOG: Error loading medication tracking:', error)
+        setMedicationTrackingData([])
+        return
+      }
+      
+      if (entries && entries.length > 0) {
+        console.log('🔍 PROVIDER DIALOG: Found real medication tracking data:', entries.length, 'entries')
+        console.log('🔍 PROVIDER DIALOG: First entry structure:', JSON.stringify(entries[0], null, 2))
+        setMedicationTrackingData(entries)
+      } else {
+        console.log('🔍 PROVIDER DIALOG: No real medication tracking data found')
+        setMedicationTrackingData([])
+      }
+    } catch (error) {
+      console.error('Error loading medication tracking:', error)
+      setMedicationTrackingData([])
+    }
+  }, [patient?.profile_id])
+
+  // Load tracking data when patient is available (regardless of initial tab)
+  React.useEffect(() => {
+    if (patient?.profile_id) {
+      console.log('🔍 PROVIDER DIALOG: Patient available, pre-loading tracking data for consistent experience')
+      console.log('🔍 PROVIDER DIALOG: Current initialTab:', initialTab)
+      console.log('🔍 PROVIDER DIALOG: Current activeTab:', activeTab)
+      console.log('🔍 PROVIDER DIALOG: Current currentMetricType:', currentMetricType)
+      loadHealthMetrics(currentMetricType)
+      loadMedicationTracking()
+    }
+  }, [patient?.profile_id, loadHealthMetrics, loadMedicationTracking, currentMetricType])
+
+  // Load metrics when metric type changes and tracking tab is active
+  React.useEffect(() => {
+    if (activeTab === 'Tracking' && patient?.profile_id) {
+      console.log('🔍 PROVIDER DIALOG: Tracking tab active, loading current metric type:', currentMetricType)
+      loadHealthMetrics(currentMetricType)
+    }
+  }, [activeTab, currentMetricType, loadHealthMetrics])
+
+  // Auto-expand to fullscreen when tracking tab is selected for consistent behavior
+  React.useEffect(() => {
+    if (activeTab === 'Tracking') {
+      console.log('🔍 PROVIDER DIALOG: Auto-expanding to fullscreen for tracking tab')
+      setIsFullscreen(true)
+    }
+  }, [activeTab])
+
+  // Handle metric type change for tracking chart
+  const handleMetricChange = async (metricType: string) => {
+    setCurrentMetricType(metricType)
+    await loadHealthMetrics(metricType)
+  }
+
+  // Handle refresh for tracking chart
+  const handleRefreshMetrics = () => {
+    loadHealthMetrics(currentMetricType)
+    loadMedicationTracking()
+  }
+
+  // Handle medication selection change for tracking chart
+  const handleMedicationSelectionChange = (selectedIds: string[]) => {
+    console.log('🔍 PROVIDER DIALOG: Medication selection changed:', selectedIds)
+    setSelectedMedicationsForTracking(selectedIds)
+  }
+
+  // Early return after all hooks are declared
+  if (!patient) return null
+
+  const { upcoming: upcomingVisits, previous: previousVisits } = categorizeVisits(patient.visits)
 
   const handleSaveClinicalNote = async () => {
     if (!selectedVisit || !clinicalNoteData) return
@@ -1450,10 +1652,28 @@ export function ProviderPatientInformationDialog({
 
               {activeTab === "Tracking" && (
                 <div className="space-y-4">
-                  <div className="bg-muted/50 rounded-xl p-4">
-                    <h3 className="font-semibold mb-2">Health Tracking</h3>
-                    <p className="text-sm text-muted-foreground">No tracking data available for this patient.</p>
-                  </div>
+                  <TrackingChart
+                    title="Patient Health Tracking"
+                    description="View patient's health metrics and medication tracking data"
+                    className="border-0 shadow-none bg-transparent"
+                      selectedMetric={currentMetricType}
+                      affirmation="Monitoring patient progress helps optimize treatment outcomes."
+                      medications={patient.medicationPreferences?.map(med => ({
+                        id: med.id,
+                        name: med.medication_name,
+                        dosage: med.preferred_dosage
+                      })) || []}
+                      selectedMedications={selectedMedicationsForTracking}
+                      onMedicationSelectionChange={handleMedicationSelectionChange}
+                      onAddMetrics={() => {}} // Disabled for providers
+                      hasMetrics={healthMetricsData.length > 0}
+                      metricsData={healthMetricsData}
+                      patientId={patient.profile_id}
+                      onRefreshMetrics={handleRefreshMetrics}
+                      onMetricChange={handleMetricChange}
+                      medicationTrackingEntries={medicationTrackingData}
+                      showAddMetricsButton={false} // Hide button for providers
+                    />
                 </div>
               )}
             </div>

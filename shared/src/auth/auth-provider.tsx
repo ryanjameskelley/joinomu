@@ -21,7 +21,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.log('🔍 Loading user role for user:', userId)
       
       // Try getUserRole with a longer timeout and better error handling
-      const role = await authService.getUserRole(userId)
+      const role = await authService.getUserRole()
       
       console.log('✅ User role loaded:', role)
       setUserRole(role)
@@ -30,7 +30,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Don't immediately set role to null - retry once
       try {
         console.log('🔄 Retrying getUserRole...')
-        const retryRole = await authService.getUserRole(userId)
+        const retryRole = await authService.getUserRole()
         console.log('✅ User role loaded on retry:', retryRole)
         setUserRole(retryRole)
       } catch (retryError) {
