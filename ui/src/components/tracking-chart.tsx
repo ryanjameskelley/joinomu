@@ -113,6 +113,7 @@ export interface TrackingChartProps {
   onRefresh?: () => void
   onMetricChange?: (metric: string) => void
   medicationTrackingEntries?: MedicationTrackingEntry[]
+  showAddMetricsButton?: boolean
 }
 
 export function TrackingChart({
@@ -131,7 +132,8 @@ export function TrackingChart({
   patientId,
   onRefresh,
   onMetricChange,
-  medicationTrackingEntries = []
+  medicationTrackingEntries = [],
+  showAddMetricsButton = true
 }: TrackingChartProps) {
   const [range, setRange] = React.useState<DateRange | undefined>(() => {
     const today = new Date()
@@ -146,6 +148,7 @@ export function TrackingChart({
   const [isOpen, setIsOpen] = React.useState(false)
   const [hoveredMedication, setHoveredMedication] = React.useState<{med: any, position: {x: number, y: number}} | null>(null)
   const [chartType, setChartType] = React.useState<'area' | 'bar'>('area')
+
 
   // Handle metric change and trigger data reload
   const handleMetricChange = (newMetric: string) => {
@@ -276,6 +279,11 @@ export function TrackingChart({
   const filteredData = React.useMemo(() => {
     // Use real metrics data if available, otherwise fallback to sample data
     const dataToUse = metricsData.length > 0 ? metricsData : chartData
+    
+    console.log('🔍 TRACKING CHART: Processing data for metric:', selectedMetric)
+    console.log('🔍 TRACKING CHART: metricsData.length:', metricsData.length)
+    console.log('🔍 TRACKING CHART: dataToUse.length:', dataToUse.length)
+    console.log('🔍 TRACKING CHART: Sample dataToUse:', dataToUse.slice(0, 3))
     
     // Filter data by selected metric type (for real data)
     const filteredByMetric = dataToUse.filter((item) => {
@@ -573,6 +581,7 @@ export function TrackingChart({
                     minTickGap={5}
                     interval="preserveStartEnd"
                     tickFormatter={formatDate}
+                    tick={{ fontSize: 8, letterSpacing: '-0.02em' }}
                   />
                   <ChartTooltip
                     content={({ active, payload, label }) => {
@@ -626,6 +635,7 @@ export function TrackingChart({
                     minTickGap={5}
                     interval="preserveStartEnd"
                     tickFormatter={formatDate}
+                    tick={{ fontSize: 8, letterSpacing: '-0.02em' }}
                   />
                   <ChartTooltip
                     content={({ active, payload, label }) => {
@@ -700,9 +710,10 @@ export function TrackingChart({
                           return (
                             <div 
                               key={med.id} 
-                              className="text-[10px] font-medium text-foreground bg-background/80 rounded px-1 mb-0.5 pointer-events-auto cursor-default select-none"
+                              className="text-[8px] font-medium text-foreground bg-background/80 rounded px-1 mb-0.5 pointer-events-auto cursor-default select-none"
                               style={{
-                                textShadow: '0 0 3px rgba(255,255,255,0.8)'
+                                textShadow: '0 0 3px rgba(255,255,255,0.8)',
+                                letterSpacing: '-0.02em'
                               }}
                               onMouseEnter={(e) => {
                                 const rect = e.currentTarget.getBoundingClientRect()
@@ -775,13 +786,15 @@ export function TrackingChart({
               </div>
             )}
           </div>
-          <Button 
-            variant="default" 
-            className="order-1 md:order-2 shrink-0 w-full md:w-auto mt-4 md:mt-0"
-            onClick={onAddMetrics}
-          >
-            Add today's metrics
-          </Button>
+          {showAddMetricsButton && (
+            <Button 
+              variant="default" 
+              className="order-1 md:order-2 shrink-0 w-full md:w-auto mt-4 md:mt-0"
+              onClick={onAddMetrics}
+            >
+              Add today's metrics
+            </Button>
+          )}
         </div>
       </CardFooter>
     </Card>

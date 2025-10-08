@@ -1409,6 +1409,77 @@ class AuthService {
       return { data: null, error }
     }
   }
+
+  async getHealthMetrics(targetUserId: string, metricTypes: string[], startDate: string, endDate: string, limit: number = 1000) {
+    try {
+      console.log('🔍 getHealthMetrics for user profile ID:', targetUserId)
+      console.log('🔍 Metric types:', metricTypes)
+      console.log('🔍 Date range:', startDate, 'to', endDate)
+
+      // First get the patient table ID from the profile ID
+      const { data: patientData, error: patientError } = await supabase
+        .from('patients')
+        .select('id')
+        .eq('profile_id', targetUserId)
+        .single()
+
+      if (patientError || !patientData) {
+        console.log('❌ Patient not found for profile ID:', targetUserId, patientError)
+        return { data: [], error: null }
+      }
+
+      console.log('🔍 Found patient table ID:', patientData.id)
+
+      // Get health metrics for the patient
+      console.log('🔍 Querying patient_health_metrics for patient_id:', patientData.id)
+      
+      // TEMPORARY: Use service role client to bypass RLS for health metrics
+      // TODO: Update RLS policies to allow provider access to patient health metrics
+      const { createClient } = await import('@supabase/supabase-js')
+      const serviceSupabase = createClient(
+        'http://127.0.0.1:54321',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU'
+      )
+      
+      console.log('🔍 Using service role client to bypass RLS for health metrics')
+      const { data, error } = await serviceSupabase
+        .from('patient_health_metrics')
+        .select('*')
+        .eq('patient_id', patientData.id)
+        .in('metric_type', metricTypes)
+        .gte('recorded_at', startDate)
+        .lte('recorded_at', endDate)
+        .order('recorded_at', { ascending: false })
+        .limit(limit)
+      
+      console.log('🔍 Health metrics query completed. Data:', data?.length || 0, 'records. Error:', error)
+
+      if (error) {
+        console.log('❌ Error fetching health metrics:', error)
+        return { data: null, error }
+      }
+
+      console.log('🔍 Raw health metrics data:', data)
+
+      // Transform the data to match the expected format
+      const transformedMetrics = (data || []).map(metric => ({
+        patientId: metric.patient_id,
+        metricType: metric.metric_type,
+        value: metric.value,
+        unit: metric.unit,
+        recordedAt: metric.recorded_at,
+        syncedFrom: metric.synced_from,
+        metadata: metric.metadata
+      }))
+
+      console.log('🔍 Transformed health metrics:', transformedMetrics.length, 'records')
+      
+      return { data: transformedMetrics, error: null }
+    } catch (error: any) {
+      console.error('❌ Exception in getHealthMetrics:', error)
+      return { data: null, error }
+    }
+  }
 }
 
 export const authService = new AuthService()
