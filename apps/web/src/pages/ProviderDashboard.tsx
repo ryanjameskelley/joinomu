@@ -30,7 +30,7 @@ export function ProviderDashboard() {
     const fetchProviderData = async () => {
       if (user?.id) {
         // Use the working role detection to check if user is a provider
-        const userRole = await authService.getUserRole(user.id)
+        const userRole = await authService.getUserRole()
         
         if (userRole !== 'provider') {
           // User is not a provider, redirect to home

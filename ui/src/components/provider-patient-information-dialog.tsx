@@ -544,13 +544,33 @@ export function ProviderPatientInformationDialog({
     }
   }, [patient?.profile_id])
 
-  // Load data when switching to Tracking tab - placed after function declarations
+  // Load tracking data when patient is available (regardless of initial tab)
   React.useEffect(() => {
-    if (activeTab === 'Tracking' && patient?.profile_id) {
+    if (patient?.profile_id) {
+      console.log('🔍 PROVIDER DIALOG: Patient available, pre-loading tracking data for consistent experience')
+      console.log('🔍 PROVIDER DIALOG: Current initialTab:', initialTab)
+      console.log('🔍 PROVIDER DIALOG: Current activeTab:', activeTab)
+      console.log('🔍 PROVIDER DIALOG: Current currentMetricType:', currentMetricType)
       loadHealthMetrics(currentMetricType)
       loadMedicationTracking()
     }
-  }, [activeTab, patient?.profile_id, currentMetricType, loadHealthMetrics, loadMedicationTracking])
+  }, [patient?.profile_id, loadHealthMetrics, loadMedicationTracking, currentMetricType])
+
+  // Load metrics when metric type changes and tracking tab is active
+  React.useEffect(() => {
+    if (activeTab === 'Tracking' && patient?.profile_id) {
+      console.log('🔍 PROVIDER DIALOG: Tracking tab active, loading current metric type:', currentMetricType)
+      loadHealthMetrics(currentMetricType)
+    }
+  }, [activeTab, currentMetricType, loadHealthMetrics])
+
+  // Auto-expand to fullscreen when tracking tab is selected for consistent behavior
+  React.useEffect(() => {
+    if (activeTab === 'Tracking') {
+      console.log('🔍 PROVIDER DIALOG: Auto-expanding to fullscreen for tracking tab')
+      setIsFullscreen(true)
+    }
+  }, [activeTab])
 
   // Handle metric type change for tracking chart
   const handleMetricChange = async (metricType: string) => {
@@ -1632,18 +1652,10 @@ export function ProviderPatientInformationDialog({
 
               {activeTab === "Tracking" && (
                 <div className="space-y-4">
-                  {!isFullscreen ? (
-                    <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-                      <div className="text-center space-y-2">
-                        <div className="text-lg font-medium">Expand to view tracking data</div>
-                        <div className="text-sm">Click the expand button to view detailed health metrics and medication tracking charts</div>
-                      </div>
-                    </div>
-                  ) : (
-                    <TrackingChart
-                      title="Patient Health Tracking"
-                      description="View patient's health metrics and medication tracking data"
-                      className="border-0 shadow-none bg-transparent"
+                  <TrackingChart
+                    title="Patient Health Tracking"
+                    description="View patient's health metrics and medication tracking data"
+                    className="border-0 shadow-none bg-transparent"
                       selectedMetric={currentMetricType}
                       affirmation="Monitoring patient progress helps optimize treatment outcomes."
                       medications={patient.medicationPreferences?.map(med => ({
@@ -1662,7 +1674,6 @@ export function ProviderPatientInformationDialog({
                       medicationTrackingEntries={medicationTrackingData}
                       showAddMetricsButton={false} // Hide button for providers
                     />
-                  )}
                 </div>
               )}
             </div>
