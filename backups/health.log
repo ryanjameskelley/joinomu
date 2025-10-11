@@ -236,3 +236,71 @@
 
 
 ✅ Health check completed at Wed Oct  8 09:02:44 PDT 2025
+🏥 AUTHENTICATION SYSTEM HEALTH CHECK
+=====================================
+🔧 Checking auth trigger...
+     component      |  status   
+--------------------+-----------
+ Auth Trigger Check | ✅ EXISTS
+(1 row)
+
+
+⚙️ Checking trigger function...
+      component      |  status   
+---------------------+-----------
+ Auth Function Check | ✅ EXISTS
+(1 row)
+
+
+👥 Checking for orphaned auth records...
+ total_users | users_with_profiles | orphaned_users | health_status 
+-------------+---------------------+----------------+---------------
+          10 |                  10 |              0 | ✅ HEALTHY
+(1 row)
+
+
+📊 Table record counts...
+ table_name | record_count 
+------------+--------------
+ admins     |            1
+ patients   |            8
+ profiles   |           10
+ providers  |            1
+(4 rows)
+
+
+✅ Health check completed at Thu Oct  9 09:00:02 PDT 2025
+🏥 AUTHENTICATION SYSTEM HEALTH CHECK
+=====================================
+🔧 Checking auth trigger...
+     component      |  status   
+--------------------+-----------
+ Auth Trigger Check | ✅ EXISTS
+(1 row)
+
+
+⚙️ Checking trigger function...
+      component      |  status   
+---------------------+-----------
+ Auth Function Check | ✅ EXISTS
+(1 row)
+
+
+👥 Checking for orphaned auth records...
+ total_users | users_with_profiles | orphaned_users | health_status 
+-------------+---------------------+----------------+---------------
+          10 |                  10 |              0 | ✅ HEALTHY
+(1 row)
+
+
+📊 Table record counts...
+ table_name | record_count 
+------------+--------------
+ admins     |            1
+ patients   |            8
+ profiles   |           10
+ providers  |            1
+(4 rows)
+
+
+✅ Health check completed at Fri Oct 10 11:16:47 CDT 2025
