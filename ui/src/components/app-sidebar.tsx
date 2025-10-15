@@ -118,51 +118,12 @@ const getNavigationData = (userRole: "patient" | "admin" | "provider") => {
         isActive: true,
       },
       {
-        title: "Treatments",
-        url: "/treatments",
-        icon: Stethoscope,
-      },
-      {
-        title: "Messaging",
-        url: "#",
-        icon: MessageCircle,
-      },
-      {
         title: "Tracking",
         url: "#",
         icon: Activity,
-        items: [
-          {
-            title: "All",
-            url: "#",
-          },
-          {
-            title: "Weight",
-            url: "#",
-          },
-          {
-            title: "Sleep",
-            url: "#",
-          },
-          {
-            title: "Exercise",
-            url: "#",
-          },
-        ],
       },
     ],
-    projects: [
-      {
-        name: "WeightLoss",
-        url: "/treatments/weightloss",
-        icon: Pill,
-      },
-      {
-        name: "Mens Health",
-        url: "/treatments/mens-health",
-        icon: Heart,
-      },
-    ],
+    projects: [],
   }
 }
 
@@ -181,6 +142,9 @@ export function AppSidebar({
   onLogout?: () => void
   onNavigate?: (item: string) => void
   userRole?: "patient" | "admin" | "provider"
+  onAccountClick?: () => void
+  onBillingClick?: () => void
+  onPreferencesClick?: () => void
 }) {
   // Get role-specific navigation data
   const navigationData = getNavigationData(userRole)
@@ -220,6 +184,9 @@ export function AppSidebar({
             avatar: userData.avatar || ""
           }} 
           onLogout={onLogout}
+          onAccountClick={props.onAccountClick}
+          onBillingClick={props.onBillingClick}
+          onPreferencesClick={props.onPreferencesClick}
         />
       </SidebarFooter>
     </Sidebar>

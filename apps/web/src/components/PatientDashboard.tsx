@@ -1,4 +1,4 @@
-import { PatientDashboard as SidebarPatientDashboard, type ChecklistItem, type MedicationInfo, type AppointmentInfo, MedicationPreferencesDialog, type MedicationOption, VisitsBookingDialog, type MedicationPreference, type Provider, MedicationCard, showToast } from '@joinomu/ui'
+import { PatientDashboard as SidebarPatientDashboard, type ChecklistItem, type MedicationInfo, type AppointmentInfo, MedicationPreferencesDialog, type MedicationOption, VisitsBookingDialog, type MedicationPreference, type Provider, MedicationCard, showToast, AccountDialog } from '@joinomu/ui'
 import { useAuth } from '@/hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
@@ -947,10 +947,32 @@ export function PatientDashboard() {
         case 'Dashboard':
           navigate('/dashboard')
           break
+        case 'Tracking':
+          navigate('/treatments')
+          break
         default:
           console.log('Unknown navigation item:', itemOrUrl)
       }
     }
+  }
+
+  // Account dialog state
+  const [accountDialogOpen, setAccountDialogOpen] = useState(false)
+  const [accountDialogSection, setAccountDialogSection] = useState('Account')
+
+  const handleAccountClick = () => {
+    setAccountDialogSection('Account')
+    setAccountDialogOpen(true)
+  }
+
+  const handleBillingClick = () => {
+    setAccountDialogSection('Billing and Plans')
+    setAccountDialogOpen(true)
+  }
+
+  const handlePreferencesClick = () => {
+    setAccountDialogSection('Preferences')
+    setAccountDialogOpen(true)
   }
 
   // Extract user data for the dashboard
@@ -985,6 +1007,9 @@ export function PatientDashboard() {
         onEditAppointment={handleEditAppointment}
         onAddMedication={() => handleEditMedication()}
         onRequestRefill={handleRequestRefill}
+        onAccountClick={handleAccountClick}
+        onBillingClick={handleBillingClick}
+        onPreferencesClick={handlePreferencesClick}
       />
       <MedicationPreferencesDialog
         open={medicationDialogOpen}
@@ -1020,6 +1045,12 @@ export function PatientDashboard() {
         isRescheduleMode={isRescheduleMode}
         existingAppointment={appointmentToReschedule}
         onRescheduleAppointment={handleRescheduleAppointment}
+      />
+      <AccountDialog
+        open={accountDialogOpen}
+        onOpenChange={setAccountDialogOpen}
+        activeSection={accountDialogSection}
+        onSectionChange={setAccountDialogSection}
       />
     </>
   )

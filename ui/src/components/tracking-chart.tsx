@@ -137,10 +137,10 @@ export function TrackingChart({
 }: TrackingChartProps) {
   const [range, setRange] = React.useState<DateRange | undefined>(() => {
     const today = new Date()
-    const thirtyDaysAgo = new Date(today)
-    thirtyDaysAgo.setDate(today.getDate() - 29) // 29 days ago + today = 30 days total
+    const oneYearAgo = new Date(today)
+    oneYearAgo.setFullYear(today.getFullYear() - 1) // Show full year of data
     return {
-      from: thirtyDaysAgo,
+      from: oneYearAgo,
       to: today,
     }
   })
@@ -297,6 +297,14 @@ export function TrackingChart({
     })
     
     // Filter by date range
+    console.log('🔍 Date range filter:', { 
+      from: range?.from?.toISOString().split('T')[0], 
+      to: range?.to?.toISOString().split('T')[0],
+      hasRange: !(!range?.from && !range?.to)
+    })
+    console.log('🔍 filteredByMetric before date filter:', filteredByMetric.length, 'items')
+    console.log('🔍 Sample dates in filteredByMetric:', filteredByMetric.slice(0, 5).map(d => d.date))
+    
     let dateFilteredData
     if (!range?.from && !range?.to) {
       dateFilteredData = filteredByMetric.map(item => ({
@@ -304,13 +312,19 @@ export function TrackingChart({
         visitors: metricsData.length > 0 ? item.value : (item as any).visitors
       }))
     } else {
+      const beforeFilter = filteredByMetric.length
       dateFilteredData = filteredByMetric.filter((item) => {
         const date = new Date(item.date)
-        return date >= range.from! && date <= range.to!
+        const inRange = date >= range.from! && date <= range.to!
+        return inRange
       }).map(item => ({
         date: item.date,
         visitors: metricsData.length > 0 ? item.value : (item as any).visitors
       }))
+      console.log('🔍 Date filtering:', beforeFilter, 'items -> ', dateFilteredData.length, 'items')
+      if (dateFilteredData.length <= 5) {
+        console.log('🔍 Items that survived date filter:', dateFilteredData.map(d => `${d.date}(${d.visitors})`))
+      }
     }
 
     // Create a comprehensive dataset by combining health metrics and medication tracking dates
@@ -519,7 +533,7 @@ export function TrackingChart({
                     <CalendarIcon />
                     {range?.from && range?.to
                       ? `${range.from.toLocaleDateString()} - ${range.to.toLocaleDateString()}`
-                      : "Last 10 days"}
+                      : "Past Year"}
                   </Button>
                 </PopoverTrigger>
               <PopoverContent className="w-auto overflow-hidden p-0" align="end">

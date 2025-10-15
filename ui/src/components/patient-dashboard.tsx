@@ -44,7 +44,10 @@ export function PatientDashboard({
   onEditMedication,
   onEditAppointment,
   onAddMedication,
-  onRequestRefill
+  onRequestRefill,
+  onAccountClick,
+  onBillingClick,
+  onPreferencesClick
 }: {
   user?: {
     name: string
@@ -99,10 +102,20 @@ export function PatientDashboard({
   onEditAppointment?: (appointmentId?: string) => void
   onAddMedication?: () => void
   onRequestRefill?: (medicationId: string) => void
+  onAccountClick?: () => void
+  onBillingClick?: () => void
+  onPreferencesClick?: () => void
 }) {
   return (
     <SidebarProvider>
-        <AppSidebar user={user} onLogout={onLogout} onNavigate={onNavigate} />
+        <AppSidebar 
+          user={user} 
+          onLogout={onLogout} 
+          onNavigate={onNavigate} 
+          onAccountClick={onAccountClick}
+          onBillingClick={onBillingClick}
+          onPreferencesClick={onPreferencesClick}
+        />
         <SidebarInset>
           <header className="flex h-16 shrink-0 items-center gap-2">
             <div className="flex items-center gap-2 px-4">

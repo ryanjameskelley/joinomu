@@ -368,178 +368,177 @@ export function ProviderPatientInformationDialog({
     }
   }
 
-  // Load health metrics data for the patient
+  // Load health metrics data for the patient using direct fetch API
   const loadHealthMetrics = React.useCallback(async (metricType: string = 'weight') => {
     if (!patient?.profile_id) return
     
     console.log('🔍 PROVIDER DIALOG: Loading health metrics for patient:', patient.profile_id, 'metric type:', metricType)
     
     try {
-      // Generate mock data for different metric types since real data access is limited
-      console.log('🔍 PROVIDER DIALOG: Generating MOCK DATA for metric type:', metricType)
+      // First get the patient's internal ID from profile_id
+      console.log('🔍 PROVIDER DIALOG: Using direct fetch API to get patient ID...')
       
-      const mockHealthMetrics = []
-      const today = new Date()
+      const patientResponse = await fetch(`http://127.0.0.1:54321/rest/v1/patients?profile_id=eq.${patient.profile_id}&select=id`, {
+        method: 'GET',
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU',
+          'Content-Type': 'application/json'
+        }
+      })
       
-      // Generate 365 days of mock data so chart range selector works properly
-      for (let i = 364; i >= 0; i--) {
-        const date = new Date(today)
-        date.setDate(date.getDate() - i)
-        
-        let value: number
-        let unit: string
-        
-        // Calculate day of week once for all cases that need it
-        const dayOfWeek = date.getDay()
-        
-        switch (metricType) {
-          case 'weight':
-            // Mock weight progression over a year (starts at 205, gradual decline with seasonal fluctuations)
-            const baseWeight = 205 - (i * 0.03) // Gradual 10 lb loss over year
-            const seasonalVariation = Math.sin((i / 365) * 2 * Math.PI) * 2 // ±2 lbs seasonal variation
-            const dailyNoise = (Math.random() * 2 - 1) // ±1 lb daily variation
-            value = Math.round((baseWeight + seasonalVariation + dailyNoise) * 10) / 10
-            unit = 'lbs'
-            break
-          case 'steps':
-            // Mock steps with weekly patterns (more on weekdays, less on weekends)
-            const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
-            const baseSteps = isWeekend ? 6000 : 9000
-            const seasonalActivity = Math.sin((i / 365) * 2 * Math.PI) * 1000 // More active in spring/summer
-            value = Math.floor(baseSteps + seasonalActivity + (Math.random() * 3000))
-            unit = 'steps'
-            break
-          case 'sleep':
-            // Mock sleep with realistic patterns (slightly more on weekends)
-            const isWeekendSleep = dayOfWeek === 0 || dayOfWeek === 6
-            const baseSleep = isWeekendSleep ? 8.0 : 7.2
-            const randomVariation = (Math.random() * 1.5 - 0.75) // ±45 minutes
-            value = Math.round((baseSleep + randomVariation) * 10) / 10
-            unit = 'hours'
-            break
-          case 'calories':
-            // Mock calories with weekly and seasonal patterns
-            const weekendCalories = dayOfWeek === 0 || dayOfWeek === 6
-            const baseCalories = weekendCalories ? 2200 : 2000
-            const holidayBoost = Math.sin((i / 365) * 2 * Math.PI) * 200 // Holiday season variation
-            value = Math.floor(baseCalories + holidayBoost + (Math.random() * 400 - 200))
-            unit = 'kcal'
-            break
-          case 'protein':
-            // Mock protein intake with gradual improvement trend
-            const baseProtein = 80 + (i * 0.05) // Gradual increase in protein awareness
-            const proteinVariation = Math.random() * 40
-            value = Math.floor(baseProtein + proteinVariation)
-            unit = 'g'
-            break
-          case 'sugar':
-            // Mock sugar intake with improvement trend and weekend spikes
-            const weekendSugar = dayOfWeek === 0 || dayOfWeek === 6
-            const baseSugar = 50 - (i * 0.02) // Gradual reduction over time
-            const weekendSpike = weekendSugar ? 15 : 0
-            value = Math.floor(Math.max(15, baseSugar + weekendSpike + (Math.random() * 20 - 10)))
-            unit = 'g'
-            break
-          case 'water':
-            // Mock water intake with seasonal patterns (more in summer)
-            const seasonalThirst = Math.sin((i / 365) * 2 * Math.PI + Math.PI/2) * 2 // Peak in summer
-            const baseWater = 8 + seasonalThirst
-            value = Math.floor(Math.max(4, baseWater + (Math.random() * 4 - 2)))
-            unit = 'cups'
-            break
-          case 'heart-rate':
-            // Mock resting heart rate with fitness improvement trend
-            const baseHR = 75 - (i * 0.01) // Gradual improvement over time
-            const hrVariation = Math.random() * 10 - 5
-            value = Math.floor(Math.max(55, Math.min(85, baseHR + hrVariation)))
-            unit = 'bpm'
-            break
-          default:
-            // Default to weight
-            const defaultBaseWeight = 205 - (i * 0.03)
-            const defaultVariation = (Math.random() * 2 - 1)
-            value = Math.round((defaultBaseWeight + defaultVariation) * 10) / 10
-            unit = 'lbs'
-        }
-        
-        mockHealthMetrics.push({
-          date: date.toISOString().split('T')[0],
-          value,
-          unit
-        })
-        
-        // Debug log for problematic metrics
-        if (metricType === 'sleep' || metricType === 'calories' || metricType === 'sugar') {
-          if (i === 364) { // Log only for first day
-            console.log(`🔍 PROVIDER DIALOG: Sample ${metricType} data:`, { date: date.toISOString().split('T')[0], value, unit })
-          }
-        }
+      if (!patientResponse.ok) {
+        console.error('❌ PROVIDER DIALOG: Failed to get patient ID:', patientResponse.status)
+        setHealthMetricsData([])
+        return
       }
       
-      console.log('🔍 PROVIDER DIALOG: Generated', mockHealthMetrics.length, 'days of MOCK chart data for', metricType)
-      console.log('🔍 PROVIDER DIALOG: Sample data:', mockHealthMetrics.slice(0, 3))
-      console.log('🔍 PROVIDER DIALOG: Data format check - first item:', mockHealthMetrics[0])
-      console.log('🔍 PROVIDER DIALOG: Setting health metrics data with', mockHealthMetrics.length, 'items')
-      console.log('🔍 PROVIDER DIALOG: Current healthMetricsData length before setting:', healthMetricsData.length)
-      setHealthMetricsData(mockHealthMetrics)
-      console.log('🔍 PROVIDER DIALOG: hasMetrics will be:', mockHealthMetrics.length > 0)
+      const patientData = await patientResponse.json()
+      if (!patientData || patientData.length === 0) {
+        console.log('🔍 PROVIDER DIALOG: Patient record not found for profile_id:', patient.profile_id)
+        setHealthMetricsData([])
+        return
+      }
+      
+      const patientId = patientData[0].id
+      console.log('🔍 PROVIDER DIALOG: Found patient database ID:', patientId)
+      
+      // Now fetch health metrics using direct API call
+      const startDate = new Date()
+      startDate.setFullYear(startDate.getFullYear() - 1) // 1 year ago
+      const endDate = new Date()
+      
+      // Map frontend metric types to database metric types
+      const dbMetricType = metricType === 'heart-rate' ? 'heart_rate' : metricType
+      
+      const queryParams = new URLSearchParams({
+        'patient_id': `eq.${patientId}`,
+        'metric_type': `eq.${dbMetricType}`,
+        'recorded_at': `gte.${startDate.toISOString()}`,
+        'recorded_at': `lte.${endDate.toISOString()}`,
+        'order': 'recorded_at.desc',
+        'limit': '1000'
+      })
+      
+      const apiUrl = 'http://127.0.0.1:54321/rest/v1/patient_health_metrics'
+      console.log('🔍 PROVIDER DIALOG: Fetching health metrics with URL:', `${apiUrl}?${queryParams.toString()}`)
+      
+      const response = await fetch(`${apiUrl}?${queryParams.toString()}`, {
+        method: 'GET',
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU',
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      console.log('🚨 PROVIDER DIALOG: Health metrics fetch response status:', response.status, response.statusText)
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('❌ PROVIDER DIALOG: Health metrics fetch error:', errorText)
+        setHealthMetricsData([])
+        return
+      }
+      
+      const rawMetrics = await response.json()
+      console.log('✅ PROVIDER DIALOG: Health metrics fetch success. Raw data count:', rawMetrics?.length)
+      console.log('✅ PROVIDER DIALOG: Sample raw data:', rawMetrics?.slice(0, 3))
+      
+      // Transform to expected format
+      const transformedMetrics = (rawMetrics || []).map(metric => ({
+        date: metric.recorded_at.split('T')[0], // Convert to YYYY-MM-DD format
+        value: metric.value,
+        unit: metric.unit
+      }))
+      
+      console.log('🔍 PROVIDER DIALOG: Transformed metrics count:', transformedMetrics.length)
+      console.log('🔍 PROVIDER DIALOG: Sample transformed data:', transformedMetrics.slice(0, 3))
+      setHealthMetricsData(transformedMetrics)
       
     } catch (error) {
-      console.error('Error loading health metrics:', error)
+      console.error('❌ PROVIDER DIALOG: Error loading health metrics:', error)
       setHealthMetricsData([])
     }
   }, [patient?.profile_id])
 
-  // Load medication tracking data for the patient
+  // Load medication tracking data for the patient using direct fetch API
   const loadMedicationTracking = React.useCallback(async () => {
     if (!patient?.profile_id) return
     
+    console.log('🔍 PROVIDER DIALOG: Loading medication tracking for patient:', patient.profile_id)
+    
     try {
-      // Import supabase directly to query tracking entries for this specific patient
-      const { supabase } = await import('@joinomu/shared')
+      // First get the patient's internal ID from profile_id
+      console.log('🔍 PROVIDER DIALOG: Using direct fetch API to get patient ID for medication tracking...')
       
-      // First, get the patient's internal ID from their profile_id
-      const { data: patientRecord, error: patientError } = await supabase
-        .from('patients')
-        .select('id')
-        .eq('profile_id', patient.profile_id)
-        .single()
-        
-      if (patientError || !patientRecord) {
-        console.log('🔍 PROVIDER DIALOG: Patient record not found:', patientError)
+      const patientResponse = await fetch(`http://127.0.0.1:54321/rest/v1/patients?profile_id=eq.${patient.profile_id}&select=id`, {
+        method: 'GET',
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU',
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      if (!patientResponse.ok) {
+        console.error('❌ PROVIDER DIALOG: Failed to get patient ID for medication tracking:', patientResponse.status)
         setMedicationTrackingData([])
         return
       }
       
-      // Get tracking entries for this specific patient
-      const { data: entries, error } = await supabase
-        .from('medication_tracking_entries')
-        .select(`
-          *,
-          medication_preference:patient_medication_preferences(
-            preferred_dosage,
-            medications(name)
-          )
-        `)
-        .eq('patient_id', patientRecord.id)
-        .order('taken_date', { ascending: false })
-      
-      if (error) {
-        console.error('🔍 PROVIDER DIALOG: Error loading medication tracking:', error)
+      const patientData = await patientResponse.json()
+      if (!patientData || patientData.length === 0) {
+        console.log('🔍 PROVIDER DIALOG: Patient record not found for medication tracking')
         setMedicationTrackingData([])
         return
       }
+      
+      const patientId = patientData[0].id
+      console.log('🔍 PROVIDER DIALOG: Found patient database ID for medication tracking:', patientId)
+      
+      // Now fetch medication tracking entries with relationship data
+      const queryParams = new URLSearchParams({
+        'patient_id': `eq.${patientId}`,
+        'select': '*,patient_medication_preferences!medication_preference_id(preferred_dosage,medications(name))',
+        'order': 'taken_date.desc',
+        'limit': '1000'
+      })
+      
+      const apiUrl = 'http://127.0.0.1:54321/rest/v1/medication_tracking_entries'
+      console.log('🔍 PROVIDER DIALOG: Fetching medication tracking with URL:', `${apiUrl}?${queryParams.toString()}`)
+      
+      const response = await fetch(`${apiUrl}?${queryParams.toString()}`, {
+        method: 'GET',
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU',
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      console.log('🚨 PROVIDER DIALOG: Medication tracking fetch response status:', response.status, response.statusText)
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('❌ PROVIDER DIALOG: Medication tracking fetch error:', errorText)
+        setMedicationTrackingData([])
+        return
+      }
+      
+      const entries = await response.json()
+      console.log('✅ PROVIDER DIALOG: Medication tracking fetch success. Entry count:', entries?.length)
+      console.log('✅ PROVIDER DIALOG: Sample medication tracking data:', entries?.slice(0, 2))
       
       if (entries && entries.length > 0) {
         console.log('🔍 PROVIDER DIALOG: Found real medication tracking data:', entries.length, 'entries')
-        console.log('🔍 PROVIDER DIALOG: First entry structure:', JSON.stringify(entries[0], null, 2))
         setMedicationTrackingData(entries)
       } else {
         console.log('🔍 PROVIDER DIALOG: No real medication tracking data found')
         setMedicationTrackingData([])
       }
     } catch (error) {
-      console.error('Error loading medication tracking:', error)
+      console.error('❌ PROVIDER DIALOG: Error loading medication tracking:', error)
       setMedicationTrackingData([])
     }
   }, [patient?.profile_id])

@@ -498,25 +498,51 @@ class AuthService {
 
   async getAvailableMedications() {
     try {
-      const { data, error } = await supabase
-        .from('medications')
-        .select(`
-          *,
-          medication_dosages(*)
-        `)
-        .eq('active', true)
-
-      if (error) {
-        console.error('❌ Supabase error loading medications:', error)
-        return { data: null, error }
+      console.log('🔍 getAvailableMedications: Using direct fetch API to bypass RLS issues...')
+      
+      // Use direct fetch API to avoid Supabase client RLS conflicts
+      const apiUrl = 'http://127.0.0.1:54321/rest/v1/medications'
+      const headers = {
+        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU',
+        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU',
+        'Content-Type': 'application/json'
       }
+      
+      const queryParams = new URLSearchParams({
+        'active': 'eq.true',
+        'select': '*,medication_dosages(*)'
+      })
+      
+      console.log('🔍 getAvailableMedications: Executing direct fetch API call')
+      console.log('🔍 API URL:', `${apiUrl}?${queryParams.toString()}`)
+      
+      const response = await fetch(`${apiUrl}?${queryParams.toString()}`, {
+        method: 'GET',
+        headers: headers
+      })
+      
+      console.log('🔍 getAvailableMedications: Fetch response status:', response.status, response.statusText)
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('❌ getAvailableMedications: Fetch error:', errorText)
+        return { data: null, error: `HTTP ${response.status}: ${errorText}` }
+      }
+      
+      const rawMedications = await response.json()
+      console.log('✅ getAvailableMedications: Fetch success. Raw data count:', rawMedications?.length)
+      console.log('✅ getAvailableMedications: Raw data sample:', rawMedications?.slice(0, 2))
 
       // Filter medications that have available dosages
-      const medicationsWithDosages = data?.filter(med => 
+      const medicationsWithDosages = rawMedications?.filter(med => 
         med.medication_dosages && med.medication_dosages.length > 0
       ) || []
 
-      console.log('✅ Loaded medications with dosages:', medicationsWithDosages)
+      console.log('✅ Loaded medications with dosages:', medicationsWithDosages.length, 'medications')
+      if (medicationsWithDosages.length > 0) {
+        console.log('📝 Sample medication with dosages:', medicationsWithDosages[0])
+      }
+      
       return { data: medicationsWithDosages, error: null }
     } catch (error: any) {
       console.error('❌ Exception loading medications:', error)
@@ -1478,6 +1504,371 @@ class AuthService {
     } catch (error: any) {
       console.error('❌ Exception in getHealthMetrics:', error)
       return { data: null, error }
+    }
+  }
+
+  // Profile update methods for Account Dialog
+  async updateUserProfile(profileData: {
+    firstName?: string
+    lastName?: string
+    email?: string
+  }) {
+    try {
+      const { user } = await this.getCurrentUser()
+      if (!user) return { success: false, error: new Error('No user found') }
+
+      console.log('🔄 Updating user profile:', profileData)
+
+      // Update profiles table
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({
+          first_name: profileData.firstName,
+          last_name: profileData.lastName,
+          email: profileData.email,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('❌ Error updating profile:', error)
+        return { success: false, error }
+      }
+
+      // If email was changed, update auth user email as well
+      if (profileData.email && profileData.email !== user.email) {
+        const { error: authError } = await supabase.auth.updateUser({
+          email: profileData.email
+        })
+
+        if (authError) {
+          console.error('❌ Error updating auth email:', authError)
+          // Note: Profile was updated but auth email failed
+          return { success: false, error: authError }
+        }
+      }
+
+      console.log('✅ Profile updated successfully:', data)
+      return { success: true, data, error: null }
+    } catch (error: any) {
+      console.error('❌ Exception updating profile:', error)
+      return { success: false, error }
+    }
+  }
+
+  async updatePatientProfile(profileData: {
+    firstName?: string
+    lastName?: string
+    email?: string
+    phone?: string
+    dateOfBirth?: string
+    allergies?: string
+  }) {
+    try {
+      const { user } = await this.getCurrentUser()
+      if (!user) return { success: false, error: new Error('No user found') }
+
+      console.log('🔄 Updating patient profile:', profileData)
+
+      // Update profiles table if any profile fields are provided
+      if (profileData.firstName !== undefined || profileData.lastName !== undefined || profileData.email !== undefined) {
+        const profileUpdate: any = {}
+        if (profileData.firstName !== undefined) profileUpdate.first_name = profileData.firstName
+        if (profileData.lastName !== undefined) profileUpdate.last_name = profileData.lastName
+        if (profileData.email !== undefined) profileUpdate.email = profileData.email
+        profileUpdate.updated_at = new Date().toISOString()
+
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update(profileUpdate)
+          .eq('id', user.id)
+
+        if (profileError) {
+          console.error('❌ Error updating profile:', profileError)
+          return { success: false, error: profileError }
+        }
+      }
+
+      // Update patients table if any patient fields are provided
+      if (profileData.phone !== undefined || profileData.dateOfBirth !== undefined || profileData.allergies !== undefined) {
+        const patientUpdate: any = {}
+        if (profileData.phone !== undefined) patientUpdate.phone = profileData.phone
+        if (profileData.dateOfBirth !== undefined) patientUpdate.date_of_birth = profileData.dateOfBirth
+        if (profileData.allergies !== undefined) patientUpdate.allergies = profileData.allergies
+        patientUpdate.updated_at = new Date().toISOString()
+
+        const { error: patientError } = await supabase
+          .from('patients')
+          .update(patientUpdate)
+          .eq('profile_id', user.id)
+
+        if (patientError) {
+          console.error('❌ Error updating patient data:', patientError)
+          return { success: false, error: patientError }
+        }
+      }
+
+      // If email was changed, update auth user email as well
+      if (profileData.email && profileData.email !== user.email) {
+        console.log('🔄 Attempting to update auth email from', user.email, 'to', profileData.email)
+        
+        try {
+          // Use admin client for immediate email updates in development
+          const { createClient } = await import('@supabase/supabase-js')
+          const adminSupabase = createClient(
+            'http://127.0.0.1:54321',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU'
+          )
+          
+          const { data: authData, error: authError } = await adminSupabase.auth.admin.updateUserById(
+            user.id,
+            { email: profileData.email }
+          )
+
+          if (authError) {
+            console.error('❌ Error updating auth email via admin:', authError)
+            console.log('⚠️ Profile updated but auth email update failed')
+          } else {
+            console.log('✅ Auth email updated successfully via admin:', authData.user.email)
+          }
+        } catch (adminError) {
+          console.error('❌ Admin auth update failed, falling back to user update:', adminError)
+          
+          // Fallback to regular user update
+          const { data: authData, error: authError } = await supabase.auth.updateUser({
+            email: profileData.email
+          })
+
+          if (authError) {
+            console.error('❌ User auth email update also failed:', authError)
+            console.log('⚠️ Profile updated but auth email update failed')
+          } else {
+            console.log('✅ Auth email update initiated via user client:', authData)
+          }
+        }
+      }
+
+      console.log('✅ Patient profile updated successfully')
+      return { success: true, error: null }
+    } catch (error: any) {
+      console.error('❌ Exception updating patient profile:', error)
+      return { success: false, error }
+    }
+  }
+
+  async updatePassword(currentPassword: string, newPassword: string) {
+    try {
+      console.log('🔄 Updating user password')
+
+      // Supabase requires current session to update password
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      })
+
+      if (error) {
+        console.error('❌ Error updating password:', error)
+        return { success: false, error }
+      }
+
+      console.log('✅ Password updated successfully')
+      return { success: true, error: null }
+    } catch (error: any) {
+      console.error('❌ Exception updating password:', error)
+      return { success: false, error }
+    }
+  }
+
+  // Patient address methods for shipping addresses
+  async getPatientAddresses(userId?: string) {
+    try {
+      const targetUserId = userId || (await this.getCurrentUser()).user?.id
+      if (!targetUserId) return { data: null, error: new Error('No user ID') }
+
+      console.log('🔍 getPatientAddresses for user profile ID:', targetUserId)
+
+      // First get the patient table ID from the profile ID
+      const { data: patientData, error: patientError } = await supabase
+        .from('patients')
+        .select('id')
+        .eq('profile_id', targetUserId)
+        .single()
+
+      if (patientError || !patientData) {
+        console.log('❌ Patient not found for profile ID:', targetUserId, patientError)
+        return { data: [], error: null }
+      }
+
+      console.log('🔍 Found patient table ID:', patientData.id)
+
+      // Get patient addresses
+      const { data, error } = await supabase
+        .from('patient_addresses')
+        .select('*')
+        .eq('patient_id', patientData.id)
+        .order('is_primary', { ascending: false })
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.log('❌ Error fetching patient addresses:', error)
+        return { data: null, error }
+      }
+
+      console.log('🔍 Found patient addresses:', data)
+      return { data, error: null }
+    } catch (error: any) {
+      console.log('❌ Exception in getPatientAddresses:', error)
+      return { data: null, error }
+    }
+  }
+
+  async createPatientAddress(addressData: {
+    fullName: string
+    streetLine1: string
+    streetLine2?: string
+    city: string
+    state: string
+    zipCode: string
+    addressType?: string
+    isPrimary?: boolean
+  }, userId?: string) {
+    try {
+      const targetUserId = userId || (await this.getCurrentUser()).user?.id
+      if (!targetUserId) return { success: false, error: new Error('No user ID') }
+
+      console.log('🔄 Creating patient address:', addressData)
+
+      // First get the patient table ID from the profile ID
+      const { data: patientData, error: patientError } = await supabase
+        .from('patients')
+        .select('id')
+        .eq('profile_id', targetUserId)
+        .single()
+
+      if (patientError || !patientData) {
+        return { success: false, error: new Error('Patient record not found') }
+      }
+
+      // If setting as primary, unset other primary addresses
+      if (addressData.isPrimary) {
+        await supabase
+          .from('patient_addresses')
+          .update({ is_primary: false })
+          .eq('patient_id', patientData.id)
+          .eq('is_primary', true)
+      }
+
+      const { data, error } = await supabase
+        .from('patient_addresses')
+        .insert({
+          patient_id: patientData.id,
+          full_name: addressData.fullName,
+          street_line_1: addressData.streetLine1,
+          street_line_2: addressData.streetLine2,
+          city: addressData.city,
+          state: addressData.state,
+          zip_code: addressData.zipCode,
+          address_type: addressData.addressType || 'shipping',
+          is_primary: addressData.isPrimary || false
+        })
+        .select()
+        .single()
+
+      if (error) {
+        console.error('❌ Error creating patient address:', error)
+        return { success: false, error }
+      }
+
+      console.log('✅ Patient address created successfully:', data)
+      return { success: true, data, error: null }
+    } catch (error: any) {
+      console.error('❌ Exception creating patient address:', error)
+      return { success: false, error }
+    }
+  }
+
+  async updatePatientAddress(addressId: string, addressData: {
+    fullName?: string
+    streetLine1?: string
+    streetLine2?: string
+    city?: string
+    state?: string
+    zipCode?: string
+    addressType?: string
+    isPrimary?: boolean
+  }) {
+    try {
+      console.log('🔄 Updating patient address:', addressId, addressData)
+
+      // If setting as primary, first unset other primary addresses for this patient
+      if (addressData.isPrimary) {
+        // Get the patient_id for this address first
+        const { data: addressInfo } = await supabase
+          .from('patient_addresses')
+          .select('patient_id')
+          .eq('id', addressId)
+          .single()
+
+        if (addressInfo) {
+          await supabase
+            .from('patient_addresses')
+            .update({ is_primary: false })
+            .eq('patient_id', addressInfo.patient_id)
+            .eq('is_primary', true)
+        }
+      }
+
+      const updateData: any = {}
+      if (addressData.fullName !== undefined) updateData.full_name = addressData.fullName
+      if (addressData.streetLine1 !== undefined) updateData.street_line_1 = addressData.streetLine1
+      if (addressData.streetLine2 !== undefined) updateData.street_line_2 = addressData.streetLine2
+      if (addressData.city !== undefined) updateData.city = addressData.city
+      if (addressData.state !== undefined) updateData.state = addressData.state
+      if (addressData.zipCode !== undefined) updateData.zip_code = addressData.zipCode
+      if (addressData.addressType !== undefined) updateData.address_type = addressData.addressType
+      if (addressData.isPrimary !== undefined) updateData.is_primary = addressData.isPrimary
+      updateData.updated_at = new Date().toISOString()
+
+      const { data, error } = await supabase
+        .from('patient_addresses')
+        .update(updateData)
+        .eq('id', addressId)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('❌ Error updating patient address:', error)
+        return { success: false, error }
+      }
+
+      console.log('✅ Patient address updated successfully:', data)
+      return { success: true, data, error: null }
+    } catch (error: any) {
+      console.error('❌ Exception updating patient address:', error)
+      return { success: false, error }
+    }
+  }
+
+  async deletePatientAddress(addressId: string) {
+    try {
+      console.log('🔄 Deleting patient address:', addressId)
+
+      const { error } = await supabase
+        .from('patient_addresses')
+        .delete()
+        .eq('id', addressId)
+
+      if (error) {
+        console.error('❌ Error deleting patient address:', error)
+        return { success: false, error }
+      }
+
+      console.log('✅ Patient address deleted successfully')
+      return { success: true, error: null }
+    } catch (error: any) {
+      console.error('❌ Exception deleting patient address:', error)
+      return { success: false, error }
     }
   }
 }

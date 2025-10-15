@@ -65,6 +65,11 @@ export * from './components/appointment-booking-dialog'
 export * from './components/visits-booking-dialog'
 export * from './components/toast'
 
+// Atomic Components
+export * from './atomic/molecules/expandable-dialog'
+export * from './atomic/organisms/account-dialog'
+export * from './atomic/atoms/switch'
+
 // Form Components
 export * from './forms/login-form'
 export * from './forms/signup-form'
