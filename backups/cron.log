@@ -24572,3 +24572,4 @@ pg_dump: creating DEFAULT ACL "public.DEFAULT PRIVILEGES FOR TABLES"
 🗜️  Schema backup compressed: ./backups/schema_only_20251014_182933.sql.gz
 🧹 Cleaned old schema backups (kept last 10)
 ✅ Schema backup completed successfully at Tue Oct 14 18:29:33 PDT 2025
+/bin/bash: /Users/ryankelley/joinomu-monorepo/comprehensive-backup.sh: No such file or directory
