@@ -94,6 +94,7 @@ export interface PatientTreatmentsProps {
   onRefreshMetrics?: (metricType?: string) => void
   onMetricChange?: (metricType: string) => void
   medicationTrackingEntries?: MedicationTrackingEntry[]
+  hasPendingMedications?: boolean
 }
 
 function TrackAlert({ 
@@ -230,8 +231,14 @@ export function PatientTreatments({
   patientId,
   onRefreshMetrics,
   onMetricChange,
-  medicationTrackingEntries = []
+  medicationTrackingEntries = [],
+  hasPendingMedications = false
 }: PatientTreatmentsProps) {
+  console.log('🔍 PatientTreatments component props:', {
+    nextShot,
+    additionalMedications: additionalMedications.length,
+    hasPendingMedications
+  })
   return (
     <SidebarProvider>
         <AppSidebar user={user} onLogout={onLogout} onNavigate={onNavigate} />
@@ -321,8 +328,17 @@ export function PatientTreatments({
                   </div>
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
-                    <p>No approved medications available for tracking.</p>
-                    <p className="text-sm">Contact your provider to get started with treatment.</p>
+                    {hasPendingMedications ? (
+                      <>
+                        <p>No medications available</p>
+                        <p className="text-sm">Your medication request is pending approval by your provider.</p>
+                      </>
+                    ) : (
+                      <>
+                        <p>No approved medications available for tracking.</p>
+                        <p className="text-sm">Contact your provider to get started with treatment.</p>
+                      </>
+                    )}
                   </div>
                 )}
               </div>

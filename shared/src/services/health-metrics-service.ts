@@ -1,4 +1,11 @@
 import { supabase } from '../config/supabase.js'
+import { createClient } from '@supabase/supabase-js'
+
+// Create a service role client for admin operations
+const serviceSupabase = createClient(
+  'http://127.0.0.1:54321',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU'
+)
 
 export interface HealthMetricData {
   patientId: string
@@ -128,32 +135,44 @@ export class HealthMetricsService {
     metrics?: HealthMetricData[]
     error?: string
   }> {
+    console.log('🔍 HealthMetricsService: Starting getHealthMetrics with query:', query)
     try {
-      let dbQuery = supabase
+      console.log('🔍 HealthMetricsService: Building database query using SERVICE ROLE...')
+      let dbQuery = serviceSupabase
         .from('patient_health_metrics')
         .select('*')
         .eq('patient_id', query.patientId)
+      
+      console.log('🔍 HealthMetricsService: Base query created for patient_id:', query.patientId)
 
       // Apply filters
       if (query.metricTypes && query.metricTypes.length > 0) {
+        console.log('🔍 HealthMetricsService: Filtering by metric types:', query.metricTypes)
         dbQuery = dbQuery.in('metric_type', query.metricTypes)
       }
       if (query.startDate) {
+        console.log('🔍 HealthMetricsService: Filtering by start date:', query.startDate)
         dbQuery = dbQuery.gte('recorded_at', query.startDate)
       }
       if (query.endDate) {
+        console.log('🔍 HealthMetricsService: Filtering by end date:', query.endDate)
         dbQuery = dbQuery.lte('recorded_at', query.endDate)
       }
       if (query.syncedFrom) {
+        console.log('🔍 HealthMetricsService: Filtering by synced_from:', query.syncedFrom)
         dbQuery = dbQuery.eq('synced_from', query.syncedFrom)
       }
 
       // Order and limit
+      const limit = query.limit || 100
+      console.log('🔍 HealthMetricsService: Applying order and limit:', limit)
       dbQuery = dbQuery
         .order('recorded_at', { ascending: false })
-        .limit(query.limit || 100)
+        .limit(limit)
 
+      console.log('🔍 HealthMetricsService: About to execute database query...')
       const { data: metrics, error } = await dbQuery
+      console.log('🔍 HealthMetricsService: Database query completed. Error:', error, 'Records found:', metrics?.length || 0)
 
       if (error) {
         console.error('Error fetching health metrics:', error)
@@ -247,69 +266,122 @@ export class HealthMetricsService {
   }
 
   /**
-   * Add manual health metric entry (upsert to prevent duplicates)
+   * Add manual health metric entry (upsert to prevent duplicates) using direct fetch API
    */
   async addManualEntry(metric: HealthMetricData): Promise<{
     success: boolean
     error?: string
   }> {
+    console.log('🔍 HealthMetricsService: Adding manual entry with direct fetch API:', metric)
     try {
       // Get the date part only (YYYY-MM-DD) for duplicate checking
       const recordedDate = metric.recordedAt.split('T')[0]
       const startOfDay = `${recordedDate}T00:00:00.000Z`
       const endOfDay = `${recordedDate}T23:59:59.999Z`
 
-      // Check for existing entry for the same patient, metric type, and date
-      const { data: existing } = await supabase
-        .from('patient_health_metrics')
-        .select('id')
-        .eq('patient_id', metric.patientId)
-        .eq('metric_type', metric.metricType)
-        .gte('recorded_at', startOfDay)
-        .lte('recorded_at', endOfDay)
-        .single()
+      console.log('🔍 HealthMetricsService: Checking for existing entry on date:', recordedDate)
 
-      if (existing) {
-        // Update existing entry
-        const { error } = await supabase
-          .from('patient_health_metrics')
-          .update({
-            value: metric.value,
-            unit: metric.unit,
-            recorded_at: metric.recordedAt,
-            synced_from: 'manual',
-            metadata: metric.metadata,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existing.id)
+      // Check for existing entry using direct fetch API
+      const checkParams = new URLSearchParams({
+        'patient_id': `eq.${metric.patientId}`,
+        'metric_type': `eq.${metric.metricType}`,
+        'recorded_at': `gte.${startOfDay}`,
+        'select': 'id'
+      })
+      checkParams.append('recorded_at', `lte.${endOfDay}`)
 
-        if (error) {
-          console.error('Error updating manual entry:', error)
-          return { success: false, error: 'Failed to update health metric' }
+      const checkUrl = `http://127.0.0.1:54321/rest/v1/patient_health_metrics?${checkParams.toString()}`
+      console.log('🔍 HealthMetricsService: Check existing URL:', checkUrl)
+
+      const checkResponse = await fetch(checkUrl, {
+        method: 'GET',
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU',
+          'Content-Type': 'application/json'
         }
+      })
+
+      console.log('🔍 HealthMetricsService: Check response status:', checkResponse.status)
+
+      if (!checkResponse.ok) {
+        console.error('❌ HealthMetricsService: Check existing failed:', checkResponse.status)
+        return { success: false, error: `Failed to check existing entries: ${checkResponse.status}` }
+      }
+
+      const existing = await checkResponse.json()
+      console.log('🔍 HealthMetricsService: Existing entries found:', existing?.length || 0)
+
+      if (existing && existing.length > 0) {
+        // Update existing entry using direct fetch API
+        console.log('🔍 HealthMetricsService: Updating existing entry:', existing[0].id)
+        
+        const updateData = {
+          value: metric.value,
+          unit: metric.unit,
+          recorded_at: metric.recordedAt,
+          synced_from: 'manual',
+          metadata: metric.metadata,
+          updated_at: new Date().toISOString()
+        }
+
+        const updateResponse = await fetch(`http://127.0.0.1:54321/rest/v1/patient_health_metrics?id=eq.${existing[0].id}`, {
+          method: 'PATCH',
+          headers: {
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU',
+            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(updateData)
+        })
+
+        console.log('🔍 HealthMetricsService: Update response status:', updateResponse.status)
+
+        if (!updateResponse.ok) {
+          const errorText = await updateResponse.text()
+          console.error('❌ HealthMetricsService: Update failed:', errorText)
+          return { success: false, error: `Failed to update health metric: ${updateResponse.status}` }
+        }
+
+        console.log('✅ HealthMetricsService: Successfully updated existing entry')
       } else {
-        // Insert new entry
-        const { error } = await supabase
-          .from('patient_health_metrics')
-          .insert({
-            patient_id: metric.patientId,
-            metric_type: metric.metricType,
-            value: metric.value,
-            unit: metric.unit,
-            recorded_at: metric.recordedAt,
-            synced_from: 'manual',
-            metadata: metric.metadata
-          })
-
-        if (error) {
-          console.error('Error adding manual entry:', error)
-          return { success: false, error: 'Failed to add health metric' }
+        // Insert new entry using direct fetch API
+        console.log('🔍 HealthMetricsService: Inserting new entry')
+        
+        const insertData = {
+          patient_id: metric.patientId,
+          metric_type: metric.metricType,
+          value: metric.value,
+          unit: metric.unit,
+          recorded_at: metric.recordedAt,
+          synced_from: 'manual',
+          metadata: metric.metadata
         }
+
+        const insertResponse = await fetch('http://127.0.0.1:54321/rest/v1/patient_health_metrics', {
+          method: 'POST',
+          headers: {
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU',
+            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(insertData)
+        })
+
+        console.log('🔍 HealthMetricsService: Insert response status:', insertResponse.status)
+
+        if (!insertResponse.ok) {
+          const errorText = await insertResponse.text()
+          console.error('❌ HealthMetricsService: Insert failed:', errorText)
+          return { success: false, error: `Failed to add health metric: ${insertResponse.status}` }
+        }
+
+        console.log('✅ HealthMetricsService: Successfully inserted new entry')
       }
 
       return { success: true }
     } catch (error) {
-      console.error('Manual entry error:', error)
+      console.error('❌ HealthMetricsService: Manual entry error:', error)
       return { success: false, error: 'An unexpected error occurred' }
     }
   }

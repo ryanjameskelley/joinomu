@@ -33,6 +33,9 @@ import {
 export function NavUser({
   user,
   onLogout,
+  onAccountClick,
+  onBillingClick,
+  onPreferencesClick,
 }: {
   user: {
     name: string
@@ -40,6 +43,9 @@ export function NavUser({
     avatar: string
   }
   onLogout?: () => void
+  onAccountClick?: () => void
+  onBillingClick?: () => void
+  onPreferencesClick?: () => void
 }) {
   const { isMobile } = useSidebar()
 
@@ -87,24 +93,17 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator className="!bg-gray-200" />
             <DropdownMenuGroup>
-              <DropdownMenuItem className="hover:!bg-gray-100 hover:!text-gray-900 !text-gray-900">
-                <Sparkles />
-                Upgrade to Pro
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator className="!bg-gray-200" />
-            <DropdownMenuGroup>
-              <DropdownMenuItem className="hover:!bg-gray-100 hover:!text-gray-900 !text-gray-900">
+              <DropdownMenuItem onClick={onAccountClick} className="hover:!bg-gray-100 hover:!text-gray-900 !text-gray-900">
                 <BadgeCheck />
                 Account
               </DropdownMenuItem>
-              <DropdownMenuItem className="hover:!bg-gray-100 hover:!text-gray-900 !text-gray-900">
+              <DropdownMenuItem onClick={onBillingClick} className="hover:!bg-gray-100 hover:!text-gray-900 !text-gray-900">
                 <CreditCard />
                 Billing
               </DropdownMenuItem>
-              <DropdownMenuItem className="hover:!bg-gray-100 hover:!text-gray-900 !text-gray-900">
+              <DropdownMenuItem onClick={onPreferencesClick} className="hover:!bg-gray-100 hover:!text-gray-900 !text-gray-900">
                 <Bell />
-                Notifications
+                Preferences
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator className="!bg-gray-200" />

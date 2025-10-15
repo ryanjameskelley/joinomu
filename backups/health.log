@@ -304,3 +304,139 @@
 
 
 ✅ Health check completed at Fri Oct 10 11:16:47 CDT 2025
+🏥 AUTHENTICATION SYSTEM HEALTH CHECK
+=====================================
+🔧 Checking auth trigger...
+     component      |  status   
+--------------------+-----------
+ Auth Trigger Check | ✅ EXISTS
+(1 row)
+
+
+⚙️ Checking trigger function...
+      component      |  status   
+---------------------+-----------
+ Auth Function Check | ✅ EXISTS
+(1 row)
+
+
+👥 Checking for orphaned auth records...
+ total_users | users_with_profiles | orphaned_users | health_status 
+-------------+---------------------+----------------+---------------
+          10 |                  10 |              0 | ✅ HEALTHY
+(1 row)
+
+
+📊 Table record counts...
+ table_name | record_count 
+------------+--------------
+ admins     |            1
+ patients   |            8
+ profiles   |           10
+ providers  |            1
+(4 rows)
+
+
+✅ Health check completed at Sat Oct 11 11:16:21 CDT 2025
+🏥 AUTHENTICATION SYSTEM HEALTH CHECK
+=====================================
+🔧 Checking auth trigger...
+     component      |  status   
+--------------------+-----------
+ Auth Trigger Check | ✅ EXISTS
+(1 row)
+
+
+⚙️ Checking trigger function...
+      component      |  status   
+---------------------+-----------
+ Auth Function Check | ✅ EXISTS
+(1 row)
+
+
+👥 Checking for orphaned auth records...
+ total_users | users_with_profiles | orphaned_users | health_status 
+-------------+---------------------+----------------+---------------
+          10 |                  10 |              0 | ✅ HEALTHY
+(1 row)
+
+
+📊 Table record counts...
+ table_name | record_count 
+------------+--------------
+ admins     |            1
+ patients   |            8
+ profiles   |           10
+ providers  |            1
+(4 rows)
+
+
+✅ Health check completed at Sun Oct 12 11:02:42 CDT 2025
+🏥 AUTHENTICATION SYSTEM HEALTH CHECK
+=====================================
+🔧 Checking auth trigger...
+     component      |  status   
+--------------------+-----------
+ Auth Trigger Check | ✅ EXISTS
+(1 row)
+
+
+⚙️ Checking trigger function...
+      component      |  status   
+---------------------+-----------
+ Auth Function Check | ✅ EXISTS
+(1 row)
+
+
+👥 Checking for orphaned auth records...
+ total_users | users_with_profiles | orphaned_users | health_status 
+-------------+---------------------+----------------+---------------
+          10 |                  10 |              0 | ✅ HEALTHY
+(1 row)
+
+
+📊 Table record counts...
+ table_name | record_count 
+------------+--------------
+ admins     |            1
+ patients   |            8
+ profiles   |           10
+ providers  |            1
+(4 rows)
+
+
+✅ Health check completed at Mon Oct 13 11:04:22 CDT 2025
+🏥 AUTHENTICATION SYSTEM HEALTH CHECK
+=====================================
+🔧 Checking auth trigger...
+     component      |  status   
+--------------------+-----------
+ Auth Trigger Check | ✅ EXISTS
+(1 row)
+
+
+⚙️ Checking trigger function...
+      component      |  status   
+---------------------+-----------
+ Auth Function Check | ✅ EXISTS
+(1 row)
+
+
+👥 Checking for orphaned auth records...
+ total_users | users_with_profiles | orphaned_users | health_status 
+-------------+---------------------+----------------+---------------
+          10 |                  10 |              0 | ✅ HEALTHY
+(1 row)
+
+
+📊 Table record counts...
+ table_name | record_count 
+------------+--------------
+ admins     |            1
+ patients   |            8
+ profiles   |           10
+ providers  |            1
+(4 rows)
+
+
+✅ Health check completed at Tue Oct 14 09:11:26 PDT 2025

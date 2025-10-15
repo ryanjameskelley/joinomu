@@ -1,0 +1,37 @@
+-- List available providers and patients to see what IDs we have
+
+-- List all providers
+DO $$
+DECLARE
+    provider_record RECORD;
+BEGIN
+    RAISE NOTICE '=== AVAILABLE PROVIDERS ===';
+    FOR provider_record IN 
+        SELECT profile_id, id, first_name, last_name, email FROM providers ORDER BY created_at DESC LIMIT 10
+    LOOP
+        RAISE NOTICE 'Provider: % % (profile_id: %, id: %, email: %)', 
+                     provider_record.first_name, 
+                     provider_record.last_name, 
+                     provider_record.profile_id, 
+                     provider_record.id,
+                     provider_record.email;
+    END LOOP;
+END $$;
+
+-- List all patients
+DO $$
+DECLARE
+    patient_record RECORD;
+BEGIN
+    RAISE NOTICE '=== AVAILABLE PATIENTS ===';
+    FOR patient_record IN 
+        SELECT profile_id, id, first_name, last_name, email FROM patients ORDER BY created_at DESC LIMIT 10
+    LOOP
+        RAISE NOTICE 'Patient: % % (profile_id: %, id: %, email: %)', 
+                     patient_record.first_name, 
+                     patient_record.last_name, 
+                     patient_record.profile_id, 
+                     patient_record.id,
+                     patient_record.email;
+    END LOOP;
+END $$;
