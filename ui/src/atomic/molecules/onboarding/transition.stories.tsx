@@ -25,7 +25,7 @@ type Story = StoryObj<typeof Transition>
 
 export const HealthHistory: Story = {
   args: {
-    message: "Up next, complete your health history information.\nSee what medications you're eligible for, a licensed medical professional will review your information before your visit.",
+    message: "Congratulations! Your health assessment is complete 🎉\nWelcome to your personalized weight loss journey.",
     onContinue: () => console.log('Continue clicked')
   }
 }

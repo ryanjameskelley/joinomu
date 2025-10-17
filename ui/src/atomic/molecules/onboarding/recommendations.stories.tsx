@@ -36,9 +36,6 @@ export const Medication: Story = {
 
 export const HowMedicationHelps: Story = {
   args: {
-    title: "How medication helps",
-    subtitle: "",
-    showBMICard: false,
     showHowMedicationHelps: true,
     onContinue: () => {
       console.log('Continue clicked')

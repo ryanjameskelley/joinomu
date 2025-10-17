@@ -784,32 +784,46 @@ export function TrackingChart({
         ) : (
           <div className="flex items-center justify-center h-[250px] text-muted-foreground">
             <div className="text-center">
-              <div className="text-lg font-medium mb-2">No metrics logged yet</div>
+              <div className="text-lg font-medium mb-2">No tracking data</div>
               <div className="text-sm">Start tracking your health metrics to see your progress</div>
             </div>
           </div>
         )}
       </CardContent>
       <CardFooter className="border-t pt-0 md:pt-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between w-full">
-          <div className="order-2 md:order-1 text-sm text-left mt-4 md:mt-0">
-            <div>{affirmation}</div>
-            {subtext && (
-              <div className="text-xs text-muted-foreground mt-2">
-                {subtext}
-              </div>
+        {hasMetrics ? (
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between w-full">
+            <div className="order-2 md:order-1 text-sm text-left mt-4 md:mt-0">
+              <div>{affirmation}</div>
+              {subtext && (
+                <div className="text-xs text-muted-foreground mt-2">
+                  {subtext}
+                </div>
+              )}
+            </div>
+            {showAddMetricsButton && (
+              <Button 
+                variant="default" 
+                className="order-1 md:order-2 shrink-0 w-full md:w-auto mt-4 md:mt-0"
+                onClick={onAddMetrics}
+              >
+                Add today's metrics
+              </Button>
             )}
           </div>
-          {showAddMetricsButton && (
-            <Button 
-              variant="default" 
-              className="order-1 md:order-2 shrink-0 w-full md:w-auto mt-4 md:mt-0"
-              onClick={onAddMetrics}
-            >
-              Add today's metrics
-            </Button>
-          )}
-        </div>
+        ) : (
+          <div className="flex justify-center w-full">
+            {showAddMetricsButton && (
+              <Button 
+                variant="default" 
+                className="shrink-0"
+                onClick={onAddMetrics}
+              >
+                Add today's metrics
+              </Button>
+            )}
+          </div>
+        )}
       </CardFooter>
     </Card>
   )

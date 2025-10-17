@@ -119,7 +119,7 @@ export function WeightLossMotivations({
       {/* Center container positioned below logo */}
       <div className="min-h-screen flex justify-center p-4 pt-24">
         <div className="w-full max-w-md mx-auto relative z-10">
-          <Card className="border border-white/20 bg-white/60 backdrop-blur-md shadow-none h-[calc(100vh-120px)] flex flex-col">
+          <Card className="border border-white/20 dark:border-none bg-white/60 dark:bg-[#0e0e0e]/60 backdrop-blur-md shadow-none h-[calc(100vh-120px)] flex flex-col">
           <CardHeader className="text-left">
             <CardTitle className="text-2xl bg-gradient-to-b from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
               What would reaching your goal weight mean for you?
@@ -136,8 +136,8 @@ export function WeightLossMotivations({
                 <div className="text-sm font-medium">{getGoalLabel(selectedGoal)}</div>
               </div>
               
-              {/* Scrollable motivations list */}
-              <div className="h-[calc(100vh-400px)] overflow-y-auto space-y-3 pr-2">
+              {/* Motivations list */}
+              <div className="space-y-3">
               {motivations.map((motivation) => (
                 <button
                   key={motivation.value}

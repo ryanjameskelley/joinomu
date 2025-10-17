@@ -70,6 +70,9 @@ export * from './atomic/molecules/expandable-dialog'
 export * from './atomic/organisms/account-dialog'
 export * from './atomic/atoms/switch'
 
+// Onboarding Components
+export * from './atomic/molecules/onboarding'
+
 // Form Components
 export * from './forms/login-form'
 export * from './forms/signup-form'

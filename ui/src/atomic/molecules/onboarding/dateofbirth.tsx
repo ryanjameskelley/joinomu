@@ -49,8 +49,8 @@ const genderOptions: GenderOption[] = [
 ]
 
 export interface DateOfBirthProps {
-  onDateChange?: (date: string) => void
-  onGenderSelect?: (gender: string) => void
+  onDateOfBirthChange?: (date: string) => void
+  onGenderChange?: (gender: string) => void
   onContinue?: () => void
   onSignInClick?: () => void
   progress?: number
@@ -58,8 +58,8 @@ export interface DateOfBirthProps {
 }
 
 export function DateOfBirth({
-  onDateChange,
-  onGenderSelect,
+  onDateOfBirthChange,
+  onGenderChange,
   onContinue,
   onSignInClick,
   progress = 100,
@@ -71,12 +71,12 @@ export function DateOfBirth({
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
     setDateValue(value)
-    onDateChange?.(value)
+    onDateOfBirthChange?.(value)
   }
 
   const handleGenderSelect = (genderValue: string) => {
     setSelectedGender(genderValue)
-    onGenderSelect?.(genderValue)
+    onGenderChange?.(genderValue)
   }
 
   const isValidDate = (dateString: string) => {
@@ -122,7 +122,7 @@ export function DateOfBirth({
       {/* Center container positioned below logo */}
       <div className="min-h-screen flex justify-center p-4 pt-24">
         <div className="w-full max-w-md mx-auto relative z-10">
-          <Card className="border border-white/20 bg-white/60 backdrop-blur-md shadow-none h-[calc(100vh-120px)] flex flex-col">
+          <Card className="border border-white/20 dark:border-none bg-white/60 dark:bg-[#0e0e0e]/60 backdrop-blur-md shadow-none h-[calc(100vh-120px)] flex flex-col">
           <CardHeader className="text-left">
             <CardTitle className="text-2xl bg-gradient-to-b from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
               To verify your eligibility tell us your date of birth and birth assigned gender

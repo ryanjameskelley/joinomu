@@ -47,21 +47,23 @@ const eatingDisorderSymptoms: EatingDisorderSymptom[] = [
 ]
 
 export interface EatingDisordersScreeningProps {
-  onSymptomSelect?: (symptoms: string[]) => void
+  onSymptomsSelect?: (symptoms: string[]) => void
   onContinue?: () => void
   onSignInClick?: () => void
   progress?: number
   className?: string
+  selectedSymptoms?: string[]
 }
 
 export function EatingDisordersScreening({
-  onSymptomSelect,
+  onSymptomsSelect,
   onContinue,
   onSignInClick,
   progress = 95,
-  className
+  className,
+  selectedSymptoms: initialSelectedSymptoms = []
 }: EatingDisordersScreeningProps) {
-  const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([])
+  const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>(initialSelectedSymptoms)
 
   const handleSymptomToggle = (symptomValue: string) => {
     let newSelectedSymptoms: string[]
@@ -81,7 +83,7 @@ export function EatingDisordersScreening({
     }
     
     setSelectedSymptoms(newSelectedSymptoms)
-    onSymptomSelect?.(newSelectedSymptoms)
+    onSymptomsSelect?.(newSelectedSymptoms)
   }
 
   return (
@@ -118,7 +120,7 @@ export function EatingDisordersScreening({
       {/* Center container positioned below logo */}
       <div className="min-h-screen flex justify-center p-4 pt-24">
         <div className="w-full max-w-md mx-auto relative z-10">
-          <Card className="border border-white/20 bg-white/60 backdrop-blur-md shadow-none h-[calc(100vh-120px)] flex flex-col">
+          <Card className="border border-white/20 dark:border-none bg-white/60 dark:bg-[#0e0e0e]/60 backdrop-blur-md shadow-none h-[calc(100vh-120px)] flex flex-col">
           <CardHeader className="text-left">
             <CardTitle className="text-2xl bg-gradient-to-b from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
               Have you ever experienced any of these symptoms?

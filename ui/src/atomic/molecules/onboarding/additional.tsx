@@ -45,6 +45,9 @@ export interface AdditionalInformationProps {
   title?: string
   defaultText?: string
   checkboxLabel?: string
+  placeholder?: string
+  hideCheckbox?: boolean
+  optional?: boolean
   className?: string
 }
 
@@ -57,18 +60,21 @@ export function AdditionalInformation({
   title = "Do you have any questions or additional information you'd like to share with the provider? Tell us so they can be reviewed and responded to any concerns before prescribing.",
   defaultText = "No, I've provided all relevant information and have no questions. Thank you!",
   checkboxLabel = "No, I've provided all relevant information",
+  placeholder = "Enter any questions or additional information...",
+  hideCheckbox = false,
+  optional = false,
   className
 }: AdditionalInformationProps) {
-  const [textValue, setTextValue] = useState<string>(defaultText)
-  const [isChecked, setIsChecked] = useState<boolean>(true)
+  const [textValue, setTextValue] = useState<string>(hideCheckbox ? '' : defaultText)
+  const [isChecked, setIsChecked] = useState<boolean>(hideCheckbox ? false : true)
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value
     setTextValue(value)
     onTextChange?.(value)
     
-    // If user types something different, uncheck the checkbox
-    if (value !== defaultText && isChecked) {
+    // If user types something different, uncheck the checkbox (only if checkbox is visible)
+    if (!hideCheckbox && value !== defaultText && isChecked) {
       setIsChecked(false)
       onCheckboxChange?.(false)
     }
@@ -123,7 +129,7 @@ export function AdditionalInformation({
       {/* Center container positioned below logo */}
       <div className="min-h-screen flex justify-center p-4 pt-24">
         <div className="w-full max-w-md mx-auto relative z-10">
-          <Card className="border border-white/20 bg-white/60 backdrop-blur-md shadow-none h-[calc(100vh-120px)] flex flex-col">
+          <Card className="border border-white/20 dark:border-none bg-white/60 dark:bg-[#0e0e0e]/60 backdrop-blur-md shadow-none h-[calc(100vh-120px)] flex flex-col">
           <CardHeader className="text-left">
             <CardTitle className="text-2xl bg-gradient-to-b from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
               {title}
@@ -134,29 +140,31 @@ export function AdditionalInformation({
               <Textarea
                 value={textValue}
                 onChange={handleTextChange}
-                placeholder="Enter any questions or additional information..."
+                placeholder={placeholder}
                 className="h-[200px] resize-none"
               />
               
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="no-additional-info"
-                  checked={isChecked}
-                  onCheckedChange={handleCheckboxChange}
-                />
-                <label
-                  htmlFor="no-additional-info"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  {checkboxLabel}
-                </label>
-              </div>
+              {!hideCheckbox && (
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="no-additional-info"
+                    checked={isChecked}
+                    onCheckedChange={handleCheckboxChange}
+                  />
+                  <label
+                    htmlFor="no-additional-info"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    {checkboxLabel}
+                  </label>
+                </div>
+              )}
             </div>
 
             <div className="space-y-4">
               <Button 
                 onClick={onContinue}
-                disabled={textValue.trim().length === 0}
+                disabled={optional ? false : textValue.trim().length === 0}
                 className="w-full"
               >
                 Continue
