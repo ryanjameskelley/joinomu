@@ -6,6 +6,7 @@ import { Toaster } from 'sonner'
 import { AuthProvider, useAuth } from '@/hooks/useAuth'
 import { PatientLoginPage } from '@/pages/PatientLoginPage'
 import { PatientSignupPage } from '@/pages/PatientSignupPage'
+import { PatientOnboardingFlowSimple } from '@/pages/PatientOnboardingFlowSimple'
 import { ProviderLoginPage } from '@/pages/ProviderLoginPage'
 import { ProviderSignupPage } from '@/pages/ProviderSignupPage'
 import { AdminLoginPage } from '@/pages/AdminLoginPage'
@@ -174,6 +175,7 @@ function App() {
           {/* Auth Routes */}
           <Route path="/patient/login" element={<PatientLoginPage />} />
           <Route path="/patient/signup" element={<PatientSignupPage />} />
+          <Route path="/patient/onboarding" element={<PatientOnboardingFlowSimple />} />
           <Route path="/provider/login" element={<ProviderLoginPage />} />
           <Route path="/provider/signup" element={<ProviderSignupPage />} />
           <Route path="/admin/login" element={<AdminLoginPage />} />

@@ -104,7 +104,7 @@ export function WeightLossMedicationPreference({
       {/* Center container positioned below logo */}
       <div className="min-h-screen flex justify-center p-4 pt-24">
         <div className="w-full max-w-md mx-auto relative z-10">
-          <Card className="border border-white/20 bg-white/60 backdrop-blur-md shadow-none h-[calc(100vh-120px)] flex flex-col">
+          <Card className="border border-white/20 dark:border-none bg-white/60 dark:bg-[#0e0e0e]/60 backdrop-blur-md shadow-none h-[calc(100vh-120px)] flex flex-col">
           <CardHeader className="text-left">
             <CardTitle className="text-2xl bg-gradient-to-b from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
               Do you have a specific weight loss medication in mind?
@@ -170,7 +170,7 @@ export function Transition({
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsVisible(true)
-    }, 100)
+    }, 800)
     
     return () => clearTimeout(timer)
   }, [])
@@ -192,14 +192,30 @@ export function Transition({
         </div>
       )
     }
+
+    // Split line into text and emojis to handle them separately
+    const emojiRegex = /(\p{Emoji_Presentation}|\p{Emoji}\uFE0F)/gu
+    const parts = line.split(emojiRegex)
     
-    // Regular text line
+    // Regular text line with mixed content (text + emojis)
     return (
-      <p 
-        key={index}
-        className="text-2xl bg-gradient-to-b from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent leading-relaxed"
-      >
-        {line}
+      <p key={index} className="text-2xl leading-relaxed">
+        {parts.map((part, partIndex) => {
+          if (emojiRegex.test(part)) {
+            // Emoji - keep natural colors
+            return <span key={partIndex}>{part}</span>
+          } else {
+            // Text - apply gradient
+            return (
+              <span 
+                key={partIndex}
+                className="bg-gradient-to-b from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent"
+              >
+                {part}
+              </span>
+            )
+          }
+        })}
       </p>
     )
   }

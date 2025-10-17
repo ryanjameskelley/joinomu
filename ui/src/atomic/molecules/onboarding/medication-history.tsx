@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../../components/card'
 import { Button } from '../../../components/button'
 import { Progress } from '@joinomu/ui'
@@ -98,8 +98,55 @@ export const sideEffectsOptions: MedicationHistoryOption[] = [
   { value: 'no-side-effects', label: "I don't experience side effects" }
 ]
 
+export const treatmentPlanOptions: MedicationHistoryOption[] = [
+  { value: 'gastrointestinal-issues', label: 'Gastrointestinal issues (like nausea, vomiting, diarrhea, constipation, and bloating)' },
+  { value: 'abdominal-pain', label: 'Abdominal pain (like cramping and discomfort)' },
+  { value: 'decreased-appetite', label: 'Decreased appetite' },
+  { value: 'fatigue', label: 'Fatigue' },
+  { value: 'dizziness', label: 'Dizziness' },
+  { value: 'headaches', label: 'Headaches' },
+  { value: 'none', label: 'No, none of these' }
+]
+
+export const weightLossChallengesOptions: MedicationHistoryOption[] = [
+  { value: 'food-noise', label: 'Food noise' },
+  { value: 'motivation', label: 'Motivation' },
+  { value: 'exercise', label: 'Exercise' },
+  { value: 'dieting', label: 'Dieting' },
+  { value: 'cost-programs', label: 'Cost of weight loss programs' },
+  { value: 'medication-side-effects', label: 'Medication side effects' },
+  { value: 'medical-conditions', label: 'Medical conditions that effect my weight loss' },
+  { value: 'increased-appetite', label: 'Increased appetite caused by medications' },
+  { value: 'other', label: 'Other' }
+]
+
+export const weightLossProgramStoppedOptions: MedicationHistoryOption[] = [
+  { value: 'not-seeing-results', label: "I wasn't seeing results fast enough" },
+  { value: 'couldnt-stick', label: "I couldn't stick with it" },
+  { value: 'too-expensive', label: 'It became too expensive' },
+  { value: 'side-effects', label: 'Side effects' },
+  { value: 'stress-travel-family', label: 'Stress, travel, family obligations' },
+  { value: 'other', label: 'Other' },
+  { value: 'no-usually-consistent', label: "No, I'm usually consistent" }
+]
+
+export const weightLossProgramEasierOptions: MedicationHistoryOption[] = [
+  { value: 'nutrition-movement', label: 'Nutrition and movement recommendations' },
+  { value: 'convenient-meals', label: 'Convenient meal options' },
+  { value: 'tracking-accountability', label: 'Tracking apps and accountability groups' },
+  { value: 'personalized-dosage', label: 'Personalized dosage to address side effects' },
+  { value: 'community-support', label: 'Stronger community support' },
+  { value: 'other', label: 'Other' }
+]
+
+export const yesNoNotSureOptions: MedicationHistoryOption[] = [
+  { value: 'yes', label: 'Yes' },
+  { value: 'no', label: 'No' },
+  { value: 'not-sure', label: "I'm not sure" }
+]
+
 export interface MedicationHistoryScreeningProps {
-  onMedicationHistorySelect?: (option: string | string[]) => void
+  onOptionsSelect?: (option: string | string[]) => void
   onContinue?: () => void
   onSignInClick?: () => void
   progress?: number
@@ -107,11 +154,13 @@ export interface MedicationHistoryScreeningProps {
   description?: string
   options?: MedicationHistoryOption[]
   multiSelect?: boolean
+  selectedOption?: string
+  selectedOptions?: string[]
   className?: string
 }
 
 export function MedicationHistoryScreening({
-  onMedicationHistorySelect,
+  onOptionsSelect,
   onContinue,
   onSignInClick,
   progress = 85,
@@ -119,10 +168,25 @@ export function MedicationHistoryScreening({
   description = "GLP-1s can include compounded semaglutide, compounded tirzepatide, Ozempic, Wegovy, Mounjaro and Zepbound.",
   options = medicationHistoryOptions,
   multiSelect = false,
+  selectedOption: externalSelectedOption,
+  selectedOptions: externalSelectedOptions,
   className
 }: MedicationHistoryScreeningProps) {
-  const [selectedOption, setSelectedOption] = useState<string>('')
-  const [selectedOptions, setSelectedOptions] = useState<string[]>([])
+  const [selectedOption, setSelectedOption] = useState<string>(externalSelectedOption || '')
+  const [selectedOptions, setSelectedOptions] = useState<string[]>(externalSelectedOptions || [])
+
+  // Sync external props with internal state
+  useEffect(() => {
+    if (externalSelectedOption !== undefined) {
+      setSelectedOption(externalSelectedOption)
+    }
+  }, [externalSelectedOption])
+
+  useEffect(() => {
+    if (externalSelectedOptions !== undefined) {
+      setSelectedOptions(externalSelectedOptions)
+    }
+  }, [externalSelectedOptions])
 
   const handleOptionSelect = (optionValue: string) => {
     if (multiSelect) {
@@ -143,10 +207,10 @@ export function MedicationHistoryScreening({
       }
       
       setSelectedOptions(newSelectedOptions)
-      onMedicationHistorySelect?.(newSelectedOptions)
+      onOptionsSelect?.(newSelectedOptions)
     } else {
       setSelectedOption(optionValue)
-      onMedicationHistorySelect?.(optionValue)
+      onOptionsSelect?.(optionValue)
     }
   }
 
@@ -184,7 +248,7 @@ export function MedicationHistoryScreening({
       {/* Center container positioned below logo */}
       <div className="min-h-screen flex justify-center p-4 pt-24">
         <div className="w-full max-w-md mx-auto relative z-10">
-          <Card className="border border-white/20 bg-white/60 backdrop-blur-md shadow-none h-[calc(100vh-120px)] flex flex-col">
+          <Card className="border border-white/20 dark:border-none bg-white/60 dark:bg-[#0e0e0e]/60 backdrop-blur-md shadow-none h-[calc(100vh-120px)] flex flex-col">
           <CardHeader className="text-left">
             <CardTitle className="text-2xl bg-gradient-to-b from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
               {title}

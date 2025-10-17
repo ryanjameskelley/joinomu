@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../../components/card'
 import { Button } from '../../../components/button'
 import { Badge } from '../../../components/badge'
@@ -219,6 +219,7 @@ function BMICard({ bmi, height, weight, onHowMedicationHelpsClick }: { bmi: numb
 export interface MedicationRecommendationProps {
   onContinue?: () => void
   onSignInClick?: () => void
+  onHowMedicationHelpsClick?: () => void
   progress?: number
   title?: string
   subtitle?: string
@@ -233,6 +234,7 @@ export interface MedicationRecommendationProps {
 export function MedicationRecommendation({
   onContinue,
   onSignInClick,
+  onHowMedicationHelpsClick,
   progress = 100,
   title = "Medication may be right for you based on what you've shared.",
   subtitle = "Here's why:",
@@ -245,8 +247,17 @@ export function MedicationRecommendation({
 }: MedicationRecommendationProps) {
   const [isFlipped, setIsFlipped] = useState(showHowMedicationHelps)
   
+  // Sync with prop changes
+  useEffect(() => {
+    setIsFlipped(showHowMedicationHelps)
+  }, [showHowMedicationHelps])
+  
   const handleShowHowMedicationHelps = () => {
-    setIsFlipped(true)
+    if (onHowMedicationHelpsClick) {
+      onHowMedicationHelpsClick()
+    } else {
+      setIsFlipped(true)
+    }
   }
   
   const handleReturnToBMI = () => {
@@ -255,12 +266,7 @@ export function MedicationRecommendation({
 
   return (
     <div className={cn("min-h-screen relative", className)}>
-      {/* CSS for flip animation */}
-      <style jsx>{`
-        .flip-card-inner.flipped {
-          transform: rotateY(180deg);
-        }
-      `}</style>
+      {/* CSS for flip animation is now handled via inline styles */}
       
       {/* Progress bar and logo fixed to viewport */}
       <div className="fixed top-6 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md px-4">
@@ -302,18 +308,18 @@ export function MedicationRecommendation({
               style={{ perspective: '1000px' }}
             >
               <div 
-                className={cn(
-                  "flip-card-inner relative w-full h-full transition-transform duration-1000 ease-in-out",
-                  isFlipped && "flipped"
-                )}
-                style={{ transformStyle: 'preserve-3d' }}
+                className="flip-card-inner relative w-full h-full transition-transform duration-1000 ease-in-out"
+                style={{ 
+                  transformStyle: 'preserve-3d',
+                  transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)'
+                }}
               >
                 {/* Front Side - BMI Card */}
                 <div 
                   className="flip-card-front absolute inset-0"
                   style={{ backfaceVisibility: 'hidden' }}
                 >
-                  <Card className="border border-white/20 bg-white/60 backdrop-blur-md shadow-none h-full flex flex-col">
+                  <Card className="border border-white/20 dark:border-none bg-white/60 dark:bg-[#0e0e0e]/60 backdrop-blur-md shadow-none h-full flex flex-col">
                     <CardHeader className="text-left">
                       <CardTitle className="text-2xl bg-gradient-to-b from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
                         {title}
@@ -341,7 +347,7 @@ export function MedicationRecommendation({
                     transform: 'rotateY(180deg)'
                   }}
                 >
-                  <Card className="border border-white/20 bg-white/60 backdrop-blur-md shadow-none h-full flex flex-col">
+                  <Card className="border border-white/20 dark:border-none bg-white/60 dark:bg-[#0e0e0e]/60 backdrop-blur-md shadow-none h-full flex flex-col">
                     <CardHeader className="text-left">
                       <CardTitle className="text-2xl bg-gradient-to-b from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
                         How medication helps

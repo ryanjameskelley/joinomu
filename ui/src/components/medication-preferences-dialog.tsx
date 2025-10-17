@@ -138,7 +138,7 @@ export function MedicationPreferencesDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {editMode ? 'Edit Medication Preference' : 'Select Medication Preference'}
+            {editMode ? 'Edit Medication Preference' : 'Select Medications'}
           </DialogTitle>
           <DialogDescription>
             {editMode 

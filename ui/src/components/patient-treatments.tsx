@@ -344,31 +344,33 @@ export function PatientTreatments({
               </div>
 
 
-              {/* History Section */}
-              <div className="mb-6">
-                <h2 className="text-xl font-semibold mb-4">History</h2>
-                <div className="space-y-6">
-                  {history.map((monthData, index) => (
-                    <div key={index} className="mb-6">
-                      <h3 className="text-xs font-bold text-muted-foreground mb-3">
-                        {monthData.month}
-                      </h3>
-                      <div className="space-y-3">
-                        {monthData.items.map((item, itemIndex) => (
-                          <MedicationTrackingAlert
-                            key={itemIndex}
-                            medication={item.medication}
-                            dosage={item.dosage}
-                            date={item.date}
-                            time={item.time}
-                            onEdit={item.onEdit}
-                          />
-                        ))}
+              {/* History Section - only show if there are tracked medications */}
+              {history && history.length > 0 && history.some(monthData => monthData.items && monthData.items.length > 0) && (
+                <div className="mb-6">
+                  <h2 className="text-xl font-semibold mb-4">History</h2>
+                  <div className="space-y-6">
+                    {history.map((monthData, index) => (
+                      <div key={index} className="mb-6">
+                        <h3 className="text-xs font-bold text-muted-foreground mb-3">
+                          {monthData.month}
+                        </h3>
+                        <div className="space-y-3">
+                          {monthData.items.map((item, itemIndex) => (
+                            <MedicationTrackingAlert
+                              key={itemIndex}
+                              medication={item.medication}
+                              dosage={item.dosage}
+                              date={item.date}
+                              time={item.time}
+                              onEdit={item.onEdit}
+                            />
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
           </div>
         </SidebarInset>
     </SidebarProvider>

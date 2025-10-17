@@ -9,75 +9,6 @@ interface PatientTreatmentsPageProps {
   treatmentType?: string
 }
 
-// Sample data generator for testing charts when no real data exists
-function generateSampleHealthData(metricType: string, startDate: Date, endDate: Date) {
-  const data = []
-  const currentDate = new Date(startDate)
-  
-  // Metric configurations for realistic sample data
-  const metricConfigs: Record<string, { base: number; variation: number; unit: string; trend?: number }> = {
-    weight: { base: 185, variation: 3, unit: 'lbs', trend: -0.15 }, // Gradual weight loss
-    steps: { base: 8500, variation: 3000, unit: 'steps' },
-    sleep: { base: 7.5, variation: 1.5, unit: 'hours' },
-    calories: { base: 2200, variation: 400, unit: 'kcal' },
-    protein: { base: 120, variation: 30, unit: 'grams' },
-    sugar: { base: 45, variation: 20, unit: 'grams' },
-    water: { base: 64, variation: 16, unit: 'fl oz' },
-    'heart-rate': { base: 72, variation: 8, unit: 'bpm', trend: -0.1 } // Improving fitness
-  }
-  
-  const config = metricConfigs[metricType] || metricConfigs.weight
-  let baseValue = config.base
-  let dayIndex = 0
-  
-  while (currentDate <= endDate) {
-    // Generate data for ~70% of days (realistic tracking frequency)
-    if (Math.random() < 0.7) {
-      // Apply trend if specified
-      if (config.trend) {
-        baseValue += config.trend
-      }
-      
-      // Add daily variation
-      let value = baseValue + (Math.random() - 0.5) * 2 * config.variation
-      
-      // Weekend patterns
-      const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6
-      if (metricType === 'steps' && isWeekend) {
-        value *= 0.7 // Less active on weekends
-      } else if (metricType === 'sleep' && isWeekend) {
-        value *= 1.15 // More sleep on weekends
-      } else if ((metricType === 'calories' || metricType === 'sugar') && isWeekend) {
-        value *= 1.2 // More indulgent on weekends
-      }
-      
-      // Ensure reasonable bounds
-      if (metricType === 'weight') value = Math.max(150, Math.min(250, value))
-      else if (metricType === 'steps') value = Math.max(1000, Math.min(20000, value))
-      else if (metricType === 'sleep') value = Math.max(4, Math.min(12, value))
-      else if (metricType === 'heart-rate') value = Math.max(50, Math.min(100, value))
-      
-      // Round appropriately
-      if (['weight', 'sleep'].includes(metricType)) {
-        value = Math.round(value * 10) / 10
-      } else {
-        value = Math.round(value)
-      }
-      
-      data.push({
-        date: currentDate.toISOString().split('T')[0],
-        value: value,
-        unit: config.unit
-      })
-    }
-    
-    currentDate.setDate(currentDate.getDate() + 1)
-    dayIndex++
-  }
-  
-  // Sort by date and return
-  return data.sort((a, b) => a.date.localeCompare(b.date))
-}
 
 export function PatientTreatmentsPage({ treatmentType = "Weight Loss" }: PatientTreatmentsPageProps) {
   const { user, signOut } = useAuth()
@@ -309,13 +240,15 @@ export function PatientTreatmentsPage({ treatmentType = "Weight Loss" }: Patient
     }
     
     try {
-      console.log('🚨 FORCE USING KNOWN PATIENT ID WITH DATA FOR DEBUGGING')
-      const forcePatientId = '419d8930-528f-4b7c-a2b0-3c62227c6bec'
-      console.log('🔍 User auth ID:', user.id)
-      console.log('🔍 Force using patient ID:', forcePatientId)
+      // Get patient record first 
+      const { success, patient, error } = await patientsService.getPatientProfile(user.id)
+      if (!success || !patient?.id) {
+        console.error('❌ Error getting patient profile:', error)
+        setHealthMetricsData([])
+        return
+      }
       
-      // Skip patient profile lookup and force use of known patient ID
-      const patient = { id: forcePatientId }
+      console.log('🔍 Using patient ID:', patient.id)
 
       // Get health metrics for the specified type (generous date range to catch all data)
       const endDate = new Date()
@@ -462,12 +395,8 @@ export function PatientTreatmentsPage({ treatmentType = "Weight Loss" }: Patient
         })
         setHealthMetricsData(chartData)
       } else {
-        console.log('🔍 No real data found, generating sample data for testing...')
-        
-        // Generate sample data for testing when no real data exists
-        const sampleData = generateSampleHealthData(metricType, startDate, endDate)
-        console.log('🔍 Generated sample data:', sampleData)
-        setHealthMetricsData(sampleData)
+        console.log('🔍 No real data found, setting empty array')
+        setHealthMetricsData([])
       }
     } catch (error) {
       console.error('Error loading health metrics:', error)
@@ -935,6 +864,9 @@ export function PatientTreatmentsPage({ treatmentType = "Weight Loss" }: Patient
         // Refresh health metrics data to show the new data in charts
         await loadHealthMetrics(currentMetricType)
         console.log('🔍 Finished refreshing metrics')
+        
+        // Force re-render by updating a trigger state
+        setLoading(false)
       } else {
         toast.error(result.errors?.join(', ') || 'Failed to save metrics')
       }

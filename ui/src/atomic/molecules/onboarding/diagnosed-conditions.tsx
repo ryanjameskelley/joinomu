@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../../components/card'
 import { Button } from '../../../components/button'
 import { Progress } from '@joinomu/ui'
@@ -75,6 +75,7 @@ export interface DiagnosedConditionsScreeningProps {
   title?: string
   description?: string
   conditions?: DiagnosedCondition[]
+  selectedConditions?: string[]
   className?: string
 }
 
@@ -86,9 +87,14 @@ export function DiagnosedConditionsScreening({
   title = "Have you been diagnosed with any of the following conditions?",
   description,
   conditions = diagnosedConditions,
+  selectedConditions: externalSelectedConditions,
   className
 }: DiagnosedConditionsScreeningProps) {
-  const [selectedConditions, setSelectedConditions] = useState<string[]>([])
+  const [selectedConditions, setSelectedConditions] = useState<string[]>(externalSelectedConditions || [])
+
+  useEffect(() => {
+    setSelectedConditions(externalSelectedConditions || [])
+  }, [externalSelectedConditions])
 
   const handleConditionToggle = (conditionValue: string) => {
     let newSelectedConditions: string[]
@@ -145,7 +151,7 @@ export function DiagnosedConditionsScreening({
       {/* Center container positioned below logo */}
       <div className="min-h-screen flex justify-center p-4 pt-24">
         <div className="w-full max-w-md mx-auto relative z-10">
-          <Card className="border border-white/20 bg-white/60 backdrop-blur-md shadow-none h-[calc(100vh-120px)] flex flex-col">
+          <Card className="border border-white/20 dark:border-none bg-white/60 dark:bg-[#0e0e0e]/60 backdrop-blur-md shadow-none h-[calc(100vh-120px)] flex flex-col">
           <CardHeader className="text-left">
             <CardTitle className="text-2xl bg-gradient-to-b from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
               {title}

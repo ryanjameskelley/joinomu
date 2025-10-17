@@ -43,7 +43,7 @@ const defaultItems: ChecklistItem[] = [
   },
   {
     id: 'medication',
-    title: 'Select medication preferences', 
+    title: 'Select medications', 
     description: "Select from the medications you're eligible for",
     completed: false,
   },
@@ -65,7 +65,7 @@ const firstStepCompleted: ChecklistItem[] = [
   },
   {
     id: 'medication',
-    title: 'Select medication preferences',
+    title: 'Select medications',
     description: "Select from the medications you're eligible for", 
     completed: false,
   },
@@ -87,7 +87,7 @@ const twoStepsCompleted: ChecklistItem[] = [
   },
   {
     id: 'medication',
-    title: 'Select medication preferences',
+    title: 'Select medications',
     description: "Select from the medications you're eligible for",
     completed: true,
   },
@@ -109,7 +109,7 @@ const allCompleted: ChecklistItem[] = [
   },
   {
     id: 'medication',
-    title: 'Select medication preferences',
+    title: 'Select medications',
     description: "Select from the medications you're eligible for",
     completed: true,
   },
@@ -159,7 +159,7 @@ export const WithoutDescriptions: Story = {
       },
       {
         id: 'medication',
-        title: 'Select medication preferences',
+        title: 'Select medications',
         completed: false,
       },
       {
