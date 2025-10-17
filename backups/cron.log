@@ -24578,3 +24578,4 @@ pg_dump: creating DEFAULT ACL "public.DEFAULT PRIVILEGES FOR TABLES"
 /bin/bash: /Users/ryankelley/joinomu-monorepo/schema-backup.sh: No such file or directory
 /bin/bash: /Users/ryankelley/joinomu-monorepo/schema-backup.sh: No such file or directory
 /bin/bash: /Users/ryankelley/joinomu-monorepo/comprehensive-backup.sh: No such file or directory
+/bin/bash: /Users/ryankelley/joinomu-monorepo/schema-backup.sh: No such file or directory
