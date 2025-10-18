@@ -63,6 +63,7 @@ export * from './components/enhanced-patient-information-dialog'
 export * from './components/medication-preferences-dialog'
 export * from './components/appointment-booking-dialog'
 export * from './components/visits-booking-dialog'
+export * from './components/support-feedback-dialog'
 export * from './components/toast'
 
 // Atomic Components
