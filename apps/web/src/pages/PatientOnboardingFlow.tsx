@@ -192,7 +192,7 @@ export function PatientOnboardingFlow() {
     switch (currentStep) {
       case 'path-entry':
         if (data.selectedPath?.includes('weight_loss')) {
-          await saveResponse('treatment_preference', data.selectedPath)
+          await saveResponse('treatment_preferences', data.selectedPath)
           nextStep = 'weightloss-entry'
         } else {
           // Handle other paths in the future
@@ -217,7 +217,7 @@ export function PatientOnboardingFlow() {
         break
 
       case 'state':
-        await saveResponse('state', data.selectedState)
+        await saveResponse('selected_state', data.selectedState)
         nextStep = 'dateofbirth'
         break
 

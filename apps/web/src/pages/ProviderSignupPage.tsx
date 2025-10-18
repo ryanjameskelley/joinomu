@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { SignupForm, Button } from '@joinomu/ui'
+import { ProviderSignupForm, Button } from '@joinomu/ui'
 import { authService } from '@joinomu/shared'
 
 interface SignupFormData {
@@ -13,6 +13,7 @@ interface SignupFormData {
   specialty?: string
   licenseNumber?: string
   phone?: string
+  licensed?: string[]
 }
 
 export function ProviderSignupPage() {
@@ -33,7 +34,8 @@ export function ProviderSignupPage() {
         role: 'provider',
         specialty: data.specialty || 'General Practice',
         licenseNumber: data.licenseNumber || 'TBD',
-        phone: data.phone
+        phone: data.phone,
+        licensed: data.licensed || []
       })
 
       if (signUpError) throw signUpError
@@ -53,8 +55,7 @@ export function ProviderSignupPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background py-8">
       <div className="max-w-2xl w-full">
-        <SignupForm 
-          userRole="provider"
+        <ProviderSignupForm 
           onSubmit={handleSignup}
           loading={loading}
           error={error}

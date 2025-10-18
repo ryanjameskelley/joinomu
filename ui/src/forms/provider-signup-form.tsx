@@ -4,7 +4,9 @@ import { Input } from '../components/input'
 import { Label } from '../components/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/card'
 import { Alert, AlertDescription } from '../components/alert'
+import { Badge } from '../components/badge'
 import { Link } from 'react-router-dom'
+import { US_STATES } from '../constants/states'
 
 interface ProviderSignupFormProps {
   onSubmit: (data: {
@@ -15,6 +17,7 @@ interface ProviderSignupFormProps {
     licenseNumber: string
     specialty: string
     phone: string
+    licensed: string[]
   }) => Promise<void>
   loading?: boolean
   error?: string
@@ -37,7 +40,8 @@ export function ProviderSignupForm({
     lastName: '',
     licenseNumber: '',
     specialty: '',
-    phone: ''
+    phone: '',
+    licensed: [] as string[]
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -56,6 +60,7 @@ export function ProviderSignupForm({
     if (!formData.licenseNumber) newErrors.licenseNumber = 'License number is required'
     if (!formData.specialty) newErrors.specialty = 'Specialty is required'
     if (!formData.phone) newErrors.phone = 'Phone number is required'
+    if (formData.licensed.length === 0) newErrors.licensed = 'At least one licensed state is required'
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -73,6 +78,18 @@ export function ProviderSignupForm({
     setFormData(prev => ({ ...prev, [field]: value }))
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }))
+    }
+  }
+
+  const handleStateToggle = (stateCode: string) => {
+    setFormData(prev => ({
+      ...prev,
+      licensed: prev.licensed.includes(stateCode)
+        ? prev.licensed.filter(s => s !== stateCode)
+        : [...prev.licensed, stateCode]
+    }))
+    if (errors.licensed) {
+      setErrors(prev => ({ ...prev, licensed: '' }))
     }
   }
 
@@ -214,6 +231,65 @@ export function ProviderSignupForm({
             />
             {errors.phone && (
               <p className="text-sm text-destructive">{errors.phone}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label>Licensed States</Label>
+            <p className="text-sm text-muted-foreground">
+              Select all states where you are licensed to practice medicine
+            </p>
+            <div className="border rounded-lg p-4 max-h-48 overflow-y-auto">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {US_STATES.map((state) => (
+                  <div key={state.value} className="flex items-center space-x-2">
+                    <button
+                      type="button"
+                      onClick={() => handleStateToggle(state.value)}
+                      disabled={loading}
+                      className={`
+                        flex items-center justify-center w-4 h-4 rounded border-2 transition-colors
+                        ${formData.licensed.includes(state.value)
+                          ? 'bg-primary border-primary text-primary-foreground'
+                          : 'border-input hover:border-primary'
+                        }
+                        ${loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                      `}
+                    >
+                      {formData.licensed.includes(state.value) && (
+                        <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </button>
+                    <label 
+                      className="text-sm cursor-pointer select-none"
+                      onClick={() => !loading && handleStateToggle(state.value)}
+                    >
+                      {state.value} - {state.label}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {formData.licensed.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {formData.licensed.map((stateCode) => {
+                  const state = US_STATES.find(s => s.value === stateCode)
+                  return (
+                    <Badge
+                      key={stateCode}
+                      variant="secondary"
+                      className="text-xs"
+                    >
+                      {state?.value}
+                    </Badge>
+                  )
+                })}
+              </div>
+            )}
+            {errors.licensed && (
+              <p className="text-sm text-destructive">{errors.licensed}</p>
             )}
           </div>
 
