@@ -9,6 +9,7 @@ export { WearableDevicesService, wearableDevicesService } from './wearable-devic
 export { HealthGoalsService, healthGoalsService } from './health-goals-service.js'
 export { HealthPermissionsService, healthPermissionsService } from './health-permissions-service.js'
 export { MedicationTrackingService, medicationTrackingService } from './medication-tracking-service.js'
+export { emailService } from './email-service.js'
 
 // API utilities and helpers
 export { ApiUtils, Logger, RateLimiter } from './api-utils.js'

@@ -47,7 +47,8 @@ export function PatientDashboard({
   onRequestRefill,
   onAccountClick,
   onBillingClick,
-  onPreferencesClick
+  onPreferencesClick,
+  onSupportFeedbackClick
 }: {
   user?: {
     name: string
@@ -105,6 +106,7 @@ export function PatientDashboard({
   onAccountClick?: () => void
   onBillingClick?: () => void
   onPreferencesClick?: () => void
+  onSupportFeedbackClick?: (type: "Support" | "Feedback") => void
 }) {
   return (
     <SidebarProvider>
@@ -115,6 +117,7 @@ export function PatientDashboard({
           onAccountClick={onAccountClick}
           onBillingClick={onBillingClick}
           onPreferencesClick={onPreferencesClick}
+          onSupportFeedbackClick={onSupportFeedbackClick}
         />
         <SidebarInset>
           <header className="flex h-16 shrink-0 items-center gap-2">

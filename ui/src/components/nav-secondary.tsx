@@ -11,6 +11,7 @@ import {
 
 export function NavSecondary({
   items,
+  onItemClick,
   ...props
 }: {
   items: {
@@ -18,17 +19,29 @@ export function NavSecondary({
     url: string
     icon: LucideIcon
   }[]
+  onItemClick?: (itemTitle: string) => void
 } & React.ComponentPropsWithoutRef<typeof SidebarGroup>) {
   return (
     <SidebarGroup {...props}>
       <SidebarMenu>
         {items.map((item) => (
           <SidebarMenuItem key={item.title}>
-            <SidebarMenuButton asChild size="sm">
-              <a href={item.url}>
-                <item.icon />
-                <span>{item.title}</span>
-              </a>
+            <SidebarMenuButton 
+              asChild={!onItemClick} 
+              size="sm"
+              onClick={onItemClick ? () => onItemClick(item.title) : undefined}
+            >
+              {onItemClick ? (
+                <div className="flex items-center gap-2 cursor-pointer">
+                  <item.icon className="h-4 w-4" />
+                  <span>{item.title}</span>
+                </div>
+              ) : (
+                <a href={item.url}>
+                  <item.icon className="h-4 w-4" />
+                  <span>{item.title}</span>
+                </a>
+              )}
             </SidebarMenuButton>
           </SidebarMenuItem>
         ))}

@@ -1,8 +1,8 @@
-import { PatientDashboard as SidebarPatientDashboard, type ChecklistItem, type MedicationInfo, type AppointmentInfo, MedicationPreferencesDialog, type MedicationOption, VisitsBookingDialog, type MedicationPreference, type Provider, MedicationCard, showToast, AccountDialog } from '@joinomu/ui'
+import { PatientDashboard as SidebarPatientDashboard, type ChecklistItem, type MedicationInfo, type AppointmentInfo, MedicationPreferencesDialog, type MedicationOption, VisitsBookingDialog, type MedicationPreference, type Provider, MedicationCard, showToast, AccountDialog, SupportFeedbackDialog } from '@joinomu/ui'
 import { useAuth } from '@/hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
-import { authService } from '@joinomu/shared'
+import { authService, emailService } from '@joinomu/shared'
 
 export function PatientDashboard() {
   const { user, signOut } = useAuth()
@@ -959,6 +959,10 @@ export function PatientDashboard() {
   // Account dialog state
   const [accountDialogOpen, setAccountDialogOpen] = useState(false)
   const [accountDialogSection, setAccountDialogSection] = useState('Account')
+  
+  // Support/Feedback dialog state
+  const [supportFeedbackDialogOpen, setSupportFeedbackDialogOpen] = useState(false)
+  const [supportFeedbackType, setSupportFeedbackType] = useState<'support' | 'feedback'>('support')
 
   const handleAccountClick = () => {
     setAccountDialogSection('Account')
@@ -973,6 +977,37 @@ export function PatientDashboard() {
   const handlePreferencesClick = () => {
     setAccountDialogSection('Preferences')
     setAccountDialogOpen(true)
+  }
+
+  const handleSupportFeedbackClick = (type: "Support" | "Feedback") => {
+    setSupportFeedbackType(type.toLowerCase() as 'support' | 'feedback')
+    setSupportFeedbackDialogOpen(true)
+  }
+
+  const handleSupportFeedbackSubmit = async (message: string, type: 'support' | 'feedback') => {
+    if (!user?.email) {
+      return { 
+        success: false, 
+        error: 'User email not available' 
+      }
+    }
+
+    try {
+      const result = await emailService.sendSupportFeedback({
+        type,
+        message,
+        userEmail: user.email,
+        userName: user.user_metadata?.full_name || user.email.split('@')[0] || 'Anonymous User'
+      })
+
+      return result
+    } catch (error) {
+      console.error('Failed to send support/feedback message:', error)
+      return {
+        success: false,
+        error: 'Failed to send message'
+      }
+    }
   }
 
   // Extract user data for the dashboard
@@ -1010,6 +1045,7 @@ export function PatientDashboard() {
         onAccountClick={handleAccountClick}
         onBillingClick={handleBillingClick}
         onPreferencesClick={handlePreferencesClick}
+        onSupportFeedbackClick={handleSupportFeedbackClick}
       />
       <MedicationPreferencesDialog
         open={medicationDialogOpen}
@@ -1051,6 +1087,12 @@ export function PatientDashboard() {
         onOpenChange={setAccountDialogOpen}
         activeSection={accountDialogSection}
         onSectionChange={setAccountDialogSection}
+      />
+      <SupportFeedbackDialog
+        open={supportFeedbackDialogOpen}
+        onOpenChange={setSupportFeedbackDialogOpen}
+        type={supportFeedbackType}
+        onSubmit={handleSupportFeedbackSubmit}
       />
     </>
   )

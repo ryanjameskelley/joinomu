@@ -132,6 +132,7 @@ export function AppSidebar({
   onLogout,
   onNavigate,
   userRole = "patient",
+  onSupportFeedbackClick,
   ...props 
 }: React.ComponentProps<typeof Sidebar> & {
   user?: {
@@ -145,6 +146,7 @@ export function AppSidebar({
   onAccountClick?: () => void
   onBillingClick?: () => void
   onPreferencesClick?: () => void
+  onSupportFeedbackClick?: (type: "Support" | "Feedback") => void
 }) {
   // Get role-specific navigation data
   const navigationData = getNavigationData(userRole)
@@ -174,7 +176,11 @@ export function AppSidebar({
       <SidebarContent>
         <NavMain items={navigationData.navMain} onNavigate={onNavigate} />
         <NavProjects projects={navigationData.projects} onNavigate={onNavigate} />
-        <NavSecondary items={navigationData.navSecondary} className="mt-auto" />
+        <NavSecondary 
+          items={navigationData.navSecondary} 
+          className="mt-auto" 
+          onItemClick={onSupportFeedbackClick}
+        />
       </SidebarContent>
       <SidebarFooter>
         <NavUser 
