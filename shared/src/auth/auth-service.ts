@@ -16,6 +16,7 @@ interface SignupData {
   specialty?: string
   licenseNumber?: string
   phone?: string
+  licensed?: string[]
 }
 
 interface LoginData {
@@ -39,7 +40,8 @@ class AuthService {
             role: data.role,
             specialty: data.specialty,
             license_number: data.licenseNumber,
-            phone: data.phone
+            phone: data.phone,
+            licensed: data.licensed
           }
         }
       })

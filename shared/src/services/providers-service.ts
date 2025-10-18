@@ -10,6 +10,7 @@ export interface Provider {
   specialty: string
   phone: string
   active: boolean
+  licensed: string[]
   created_at: string
   updated_at: string
 }
@@ -22,6 +23,7 @@ export interface CreateProviderData {
   license_number: string
   specialty: string
   phone: string
+  licensed?: string[]
   active?: boolean
 }
 
@@ -31,6 +33,7 @@ export interface UpdateProviderData {
   license_number?: string
   specialty?: string
   phone?: string
+  licensed?: string[]
   active?: boolean
 }
 
